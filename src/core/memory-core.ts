@@ -217,6 +217,142 @@ export class MemoryCore {
     }
   }
 
+  async getMemory(
+    memoryId: number,
+    options: { userId?: string } = {}
+  ): Promise<MCPToolResult> {
+    try {
+      const userId = this.getUserId(options.userId);
+
+      const result = await this.db.execute(
+        'SELECT * FROM memories WHERE id = ? AND user_id = ?',
+        [memoryId, userId]
+      );
+
+      if (result.rows.length === 0) {
+        return {
+          status: MCPToolResultStatus.ERROR,
+          message: 'Memory not found',
+          error: `No memory found with ID ${memoryId}`,
+        };
+      }
+
+      return {
+        status: MCPToolResultStatus.SUCCESS,
+        message: 'Memory retrieved successfully',
+        data: result.rows[0],
+      };
+    } catch (error) {
+      return {
+        status: MCPToolResultStatus.ERROR,
+        message: 'Failed to retrieve memory',
+        error: String(error),
+      };
+    }
+  }
+
+  async updateMemory(
+    memoryId: number,
+    updates: {
+      title?: string;
+      content?: string;
+      importance?: ImportanceLevel;
+      tags?: string[];
+    },
+    options: { userId?: string } = {}
+  ): Promise<MCPToolResult> {
+    try {
+      const userId = this.getUserId(options.userId);
+
+      // First check if memory exists and belongs to user
+      const existingResult = await this.getMemory(memoryId, { userId });
+      if (existingResult.status !== MCPToolResultStatus.SUCCESS) {
+        return existingResult;
+      }
+
+      const updateFields: string[] = [];
+      const updateValues: any[] = [];
+
+      if (updates.title !== undefined) {
+        updateFields.push('title = ?');
+        updateValues.push(updates.title);
+      }
+
+      if (updates.content !== undefined) {
+        updateFields.push('content = ?');
+        updateValues.push(updates.content);
+      }
+
+      if (updates.importance !== undefined) {
+        updateFields.push('importance = ?');
+        updateValues.push(updates.importance);
+      }
+
+      if (updates.tags !== undefined) {
+        updateFields.push('tags = ?');
+        updateValues.push(updates.tags.join(','));
+      }
+
+      if (updateFields.length === 0) {
+        return {
+          status: MCPToolResultStatus.ERROR,
+          message: 'No updates provided',
+          error: 'At least one field must be updated',
+        };
+      }
+
+      updateFields.push('updated_at = CURRENT_TIMESTAMP');
+      updateValues.push(memoryId, userId);
+
+      const sql = `UPDATE memories SET ${updateFields.join(', ')} WHERE id = ? AND user_id = ?`;
+      await this.db.execute(sql, updateValues);
+
+      return {
+        status: MCPToolResultStatus.SUCCESS,
+        message: 'Memory updated successfully',
+        data: { id: memoryId },
+      };
+    } catch (error) {
+      return {
+        status: MCPToolResultStatus.ERROR,
+        message: 'Failed to update memory',
+        error: String(error),
+      };
+    }
+  }
+
+  async deleteMemory(
+    memoryId: number,
+    options: { userId?: string } = {}
+  ): Promise<MCPToolResult> {
+    try {
+      const userId = this.getUserId(options.userId);
+
+      // First check if memory exists and belongs to user
+      const existingResult = await this.getMemory(memoryId, { userId });
+      if (existingResult.status !== MCPToolResultStatus.SUCCESS) {
+        return existingResult;
+      }
+
+      await this.db.execute(
+        'DELETE FROM memories WHERE id = ? AND user_id = ?',
+        [memoryId, userId]
+      );
+
+      return {
+        status: MCPToolResultStatus.SUCCESS,
+        message: 'Memory deleted successfully',
+        data: { id: memoryId },
+      };
+    } catch (error) {
+      return {
+        status: MCPToolResultStatus.ERROR,
+        message: 'Failed to delete memory',
+        error: String(error),
+      };
+    }
+  }
+
   /**
    * Vector search for memories
    */

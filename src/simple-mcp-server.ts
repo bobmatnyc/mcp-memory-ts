@@ -196,33 +196,119 @@ class SimpleMCPServer {
   private handleToolsList(id: string | number): JsonRpcResponse {
     const tools = [
       {
-        name: 'memory_add',
-        description: 'Add a new memory to the database',
+        name: 'store_memory',
+        description: 'Store a new memory',
         inputSchema: {
           type: 'object',
           properties: {
-            title: { type: 'string', description: 'Memory title' },
-            content: { type: 'string', description: 'Memory content' },
-            tags: { type: 'array', items: { type: 'string' }, description: 'Tags' },
+            content: { type: 'string', description: 'The content to store in memory' },
+            type: {
+              type: 'string',
+              enum: ['episodic', 'semantic', 'procedural', 'working', 'sensory'],
+              description: 'Type of memory',
+              default: 'semantic'
+            },
+            importance: {
+              type: 'number',
+              minimum: 0,
+              maximum: 1,
+              description: 'Importance score (0-1)',
+              default: 0.5
+            },
+            metadata: { type: 'object', description: 'Additional metadata' },
           },
-          required: ['title', 'content'],
+          required: ['content'],
         },
       },
       {
-        name: 'memory_search',
-        description: 'Search memories',
+        name: 'recall_memories',
+        description: 'Retrieve memories based on a query',
         inputSchema: {
           type: 'object',
           properties: {
-            query: { type: 'string', description: 'Search query' },
-            limit: { type: 'integer', description: 'Max results', default: 10 },
+            query: { type: 'string', description: 'Query string to search memories' },
+            limit: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 100,
+              description: 'Maximum number of memories to retrieve',
+              default: 10
+            },
+            strategy: {
+              type: 'string',
+              enum: ['recency', 'frequency', 'importance', 'similarity', 'composite'],
+              description: 'Recall strategy to use',
+              default: 'composite'
+            },
+            threshold: {
+              type: 'number',
+              minimum: 0,
+              maximum: 1,
+              description: 'Minimum relevance threshold',
+              default: 0.3
+            },
           },
           required: ['query'],
         },
       },
       {
-        name: 'get_statistics',
-        description: 'Get memory statistics',
+        name: 'get_memory',
+        description: 'Retrieve a specific memory by ID',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Memory item ID' },
+          },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'update_memory',
+        description: 'Update an existing memory',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Memory item ID to update' },
+            content: { type: 'string', description: 'Updated content' },
+            importance: {
+              type: 'number',
+              minimum: 0,
+              maximum: 1,
+              description: 'Updated importance score'
+            },
+            metadata: { type: 'object', description: 'Updated metadata' },
+          },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'delete_memory',
+        description: 'Delete a memory by ID',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Memory item ID to delete' },
+          },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'clear_memories',
+        description: 'Clear all memories or memories of a specific type',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              enum: ['episodic', 'semantic', 'procedural', 'working', 'sensory'],
+              description: 'Type of memories to clear (omit to clear all)'
+            },
+          },
+        },
+      },
+      {
+        name: 'get_memory_stats',
+        description: 'Get statistics about stored memories',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -249,30 +335,39 @@ class SimpleMCPServer {
 
     try {
       switch (name) {
-        case 'memory_add':
+        case 'store_memory':
+          // Map memory type from string to enum
+          let memoryType = MemoryType.MEMORY;
+          if (args.type === 'interaction') memoryType = MemoryType.INTERACTION;
+
+          // Map importance from 0-1 to enum
+          let importance = ImportanceLevel.MEDIUM;
+          if (args.importance <= 0.3) importance = ImportanceLevel.LOW;
+          else if (args.importance >= 0.7) importance = ImportanceLevel.HIGH;
+
           const addResult = await this.memoryCore.addMemory(
-            args.title,
+            args.metadata?.title || 'Memory',
             args.content,
-            MemoryType.MEMORY,
+            memoryType,
             {
-              tags: args.tags,
-              importance: ImportanceLevel.MEDIUM,
+              tags: args.metadata?.tags,
+              importance,
               generateEmbedding: true,
             }
           );
 
           if (addResult.status === MCPToolResultStatus.SUCCESS) {
             const memoryData = addResult.data as any;
-            resultText = `✅ Memory "${args.title}" added successfully!\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nTags: ${args.tags?.join(', ') || 'none'}`;
+            resultText = `✅ Memory stored successfully!\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nType: ${args.type || 'semantic'}\nImportance: ${args.importance || 0.5}`;
           } else {
-            resultText = `❌ Failed to add memory: ${addResult.error || addResult.message}`;
+            resultText = `❌ Failed to store memory: ${addResult.error || addResult.message}`;
           }
           break;
 
-        case 'memory_search':
+        case 'recall_memories':
           const searchResult = await this.memoryCore.searchMemories(args.query, {
             limit: args.limit || 10,
-            threshold: 0.7,
+            threshold: args.threshold || 0.3,
           });
 
           if (searchResult.status === MCPToolResultStatus.SUCCESS && searchResult.data) {
@@ -282,7 +377,7 @@ class SimpleMCPServer {
             } else {
               resultText = `🔍 Found ${memories.length} memories for "${args.query}":\n\n`;
               memories.forEach((memory, index) => {
-                resultText += `${index + 1}. ${memory.title}\n   Content: ${memory.content.substring(0, 100)}${memory.content.length > 100 ? '...' : ''}\n   Tags: ${memory.tags || 'none'}\n   Created: ${new Date(memory.createdAt).toLocaleDateString()}\n\n`;
+                resultText += `${index + 1}. Memory ID: ${memory.id}\n   Content: ${memory.content.substring(0, 150)}${memory.content.length > 150 ? '...' : ''}\n   Type: ${memory.memoryType || 'semantic'}\n   Created: ${new Date(memory.createdAt).toLocaleDateString()}\n\n`;
               });
             }
           } else {
@@ -290,12 +385,51 @@ class SimpleMCPServer {
           }
           break;
 
-        case 'get_statistics':
+        case 'get_memory':
+          const getResult = await this.memoryCore.getMemory(parseInt(args.id));
+
+          if (getResult.status === MCPToolResultStatus.SUCCESS && getResult.data) {
+            const memory = getResult.data as any;
+            resultText = `📄 Memory Details:\n\nID: ${memory.id}\nContent: ${memory.content}\nType: ${memory.memoryType || 'semantic'}\nImportance: ${memory.importance || 'medium'}\nCreated: ${new Date(memory.createdAt).toLocaleString()}\nTags: ${memory.tags || 'none'}`;
+          } else {
+            resultText = `❌ Memory not found: ${getResult.error || getResult.message}`;
+          }
+          break;
+
+        case 'update_memory':
+          const updateResult = await this.memoryCore.updateMemory(parseInt(args.id), {
+            content: args.content,
+            importance: args.importance ? (args.importance <= 0.3 ? ImportanceLevel.LOW : args.importance >= 0.7 ? ImportanceLevel.HIGH : ImportanceLevel.MEDIUM) : undefined,
+          });
+
+          if (updateResult.status === MCPToolResultStatus.SUCCESS) {
+            resultText = `✅ Memory ${args.id} updated successfully!`;
+          } else {
+            resultText = `❌ Failed to update memory: ${updateResult.error || updateResult.message}`;
+          }
+          break;
+
+        case 'delete_memory':
+          const deleteResult = await this.memoryCore.deleteMemory(parseInt(args.id));
+
+          if (deleteResult.status === MCPToolResultStatus.SUCCESS) {
+            resultText = `✅ Memory ${args.id} deleted successfully!`;
+          } else {
+            resultText = `❌ Failed to delete memory: ${deleteResult.error || deleteResult.message}`;
+          }
+          break;
+
+        case 'clear_memories':
+          // For now, we'll just return a message since this is a dangerous operation
+          resultText = `⚠️ Clear memories operation not implemented for safety. Use delete_memory for individual deletions.`;
+          break;
+
+        case 'get_memory_stats':
           const statsResult = await this.memoryCore.getStatistics();
 
           if (statsResult.status === MCPToolResultStatus.SUCCESS && statsResult.data) {
             const stats = statsResult.data as any;
-            resultText = `📊 Memory Statistics:\n\n• Total Memories: ${stats.totalMemories}\n• Total Entities: ${stats.totalEntities}\n• Memories by Type:\n  - Memory: ${stats.memoryTypes?.memory || 0}\n  - Interaction: ${stats.memoryTypes?.interaction || 0}\n  - Technical: ${stats.memoryTypes?.technical || 0}\n• Vector Embeddings: ${stats.embeddedMemories}/${stats.totalMemories} (${Math.round((stats.embeddedMemories / Math.max(stats.totalMemories, 1)) * 100)}%)`;
+            resultText = `📊 Memory Statistics:\n\n• Total Memories: ${stats.totalMemories}\n• Total Entities: ${stats.totalEntities}\n• Memories by Type:\n  - Semantic: ${stats.memoryTypes?.memory || 0}\n  - Episodic: ${stats.memoryTypes?.interaction || 0}\n  - Other: ${stats.memoryTypes?.technical || 0}\n• Vector Embeddings: ${stats.embeddedMemories}/${stats.totalMemories} (${Math.round((stats.embeddedMemories / Math.max(stats.totalMemories, 1)) * 100)}%)`;
           } else {
             resultText = `❌ Failed to get statistics: ${statsResult.error || statsResult.message}`;
           }

@@ -128,9 +128,9 @@ class MCPRegressionTester {
       if (response.result.tools.length === 0) throw new Error('No tools returned');
 
       const toolNames = response.result.tools.map((t: any) => t.name);
-      if (!toolNames.includes('memory_add')) throw new Error('memory_add tool missing');
-      if (!toolNames.includes('memory_search')) throw new Error('memory_search tool missing');
-      if (!toolNames.includes('get_statistics')) throw new Error('get_statistics tool missing');
+      if (!toolNames.includes('store_memory')) throw new Error('store_memory tool missing');
+      if (!toolNames.includes('recall_memories')) throw new Error('recall_memories tool missing');
+      if (!toolNames.includes('get_memory_stats')) throw new Error('get_memory_stats tool missing');
     });
 
     // Test 2: Initialize method
@@ -161,7 +161,7 @@ class MCPRegressionTester {
         id: 2,
         method: 'tools/call',
         params: {
-          name: 'get_statistics',
+          name: 'get_memory_stats',
           arguments: {},
         },
       };
@@ -183,11 +183,15 @@ class MCPRegressionTester {
         id: 3,
         method: 'tools/call',
         params: {
-          name: 'memory_add',
+          name: 'store_memory',
           arguments: {
-            title: 'Regression Test Memory',
             content: 'This memory validates the add functionality',
-            tags: ['regression', 'test'],
+            type: 'semantic',
+            importance: 0.7,
+            metadata: {
+              title: 'Regression Test Memory',
+              tags: ['regression', 'test'],
+            },
           },
         },
       };
@@ -199,7 +203,7 @@ class MCPRegressionTester {
       if (response.result.isError) throw new Error('Tool returned error');
       
       const text = response.result.content[0].text;
-      if (!text.includes('✅ Memory "Regression Test Memory" added successfully!')) {
+      if (!text.includes('✅ Memory stored successfully!')) {
         throw new Error('Memory add confirmation missing');
       }
       if (!text.includes('ID: 1')) throw new Error('Memory ID missing');
@@ -212,7 +216,7 @@ class MCPRegressionTester {
         id: 4,
         method: 'tools/call',
         params: {
-          name: 'get_statistics',
+          name: 'get_memory_stats',
           arguments: {},
         },
       };
@@ -233,7 +237,7 @@ class MCPRegressionTester {
         id: 5,
         method: 'tools/call',
         params: {
-          name: 'memory_search',
+          name: 'recall_memories',
           arguments: {
             query: 'regression test',
             limit: 10,
@@ -250,7 +254,7 @@ class MCPRegressionTester {
       if (!text.includes('Found 1 memories for "regression test"')) {
         throw new Error('Search should find 1 memory');
       }
-      if (!text.includes('Regression Test Memory')) {
+      if (!text.includes('This memory validates the add functionality')) {
         throw new Error('Search should return the added memory');
       }
     });
