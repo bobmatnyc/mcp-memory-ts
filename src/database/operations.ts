@@ -11,22 +11,17 @@ export class DatabaseOperations {
 
   // User operations
   async createUser(user: User): Promise<User> {
+    // Use a simpler insert that matches the existing Python schema
     const sql = `
-      INSERT INTO users (id, email, name, organization, api_key, oauth_provider, oauth_id, 
-                        is_active, metadata, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, email, name, organization, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
-    
+
     await this.db.execute(sql, [
       user.id,
       user.email,
       user.name || null,
       user.organization || null,
-      user.apiKey || null,
-      user.oauthProvider || null,
-      user.oauthId || null,
-      user.isActive ? 1 : 0,
-      stringifyMetadata(user.metadata),
       user.createdAt,
       user.updatedAt,
     ]);

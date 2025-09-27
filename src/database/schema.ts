@@ -202,26 +202,26 @@ export const CREATE_FTS_TRIGGERS = {
  * Initialize the database schema
  */
 export async function initializeSchema(db: DatabaseConnection): Promise<void> {
-  console.log('Initializing database schema...');
+  console.error('Initializing database schema...');
 
   try {
     // Check current schema version
     const currentVersion = await getCurrentSchemaVersion(db);
     
     if (currentVersion >= SCHEMA_VERSION) {
-      console.log(`Schema is up to date (version ${currentVersion})`);
+      console.error(`Schema is up to date (version ${currentVersion})`);
       return;
     }
 
     // Create tables
     for (const [tableName, sql] of Object.entries(CREATE_TABLES)) {
-      console.log(`Creating table: ${tableName}`);
+      console.error(`Creating table: ${tableName}`);
       await db.execute(sql);
     }
 
     // Create indexes
     for (const [tableName, indexes] of Object.entries(CREATE_INDEXES)) {
-      console.log(`Creating indexes for: ${tableName}`);
+      console.error(`Creating indexes for: ${tableName}`);
       for (const indexSql of indexes) {
         await db.execute(indexSql);
       }
@@ -229,13 +229,13 @@ export async function initializeSchema(db: DatabaseConnection): Promise<void> {
 
     // Create FTS tables
     for (const [tableName, sql] of Object.entries(CREATE_FTS_TABLES)) {
-      console.log(`Creating FTS table: ${tableName}`);
+      console.error(`Creating FTS table: ${tableName}`);
       await db.execute(sql);
     }
 
     // Create FTS triggers
     for (const [tableName, triggers] of Object.entries(CREATE_FTS_TRIGGERS)) {
-      console.log(`Creating FTS triggers for: ${tableName}`);
+      console.error(`Creating FTS triggers for: ${tableName}`);
       for (const triggerSql of triggers) {
         await db.execute(triggerSql);
       }
@@ -247,7 +247,7 @@ export async function initializeSchema(db: DatabaseConnection): Promise<void> {
       [SCHEMA_VERSION, new Date().toISOString()]
     );
 
-    console.log(`Schema initialized successfully (version ${SCHEMA_VERSION})`);
+    console.error(`Schema initialized successfully (version ${SCHEMA_VERSION})`);
   } catch (error) {
     console.error('Failed to initialize schema:', error);
     throw error;
@@ -271,7 +271,7 @@ async function getCurrentSchemaVersion(db: DatabaseConnection): Promise<number> 
  * Drop all tables (for testing/reset)
  */
 export async function dropAllTables(db: DatabaseConnection): Promise<void> {
-  console.log('Dropping all tables...');
+  console.error('Dropping all tables...');
 
   const tables = [
     'memories_fts',
@@ -287,9 +287,9 @@ export async function dropAllTables(db: DatabaseConnection): Promise<void> {
   for (const table of tables) {
     try {
       await db.execute(`DROP TABLE IF EXISTS ${table}`);
-      console.log(`Dropped table: ${table}`);
+      console.error(`Dropped table: ${table}`);
     } catch (error) {
-      console.warn(`Failed to drop table ${table}:`, error);
+      console.error(`Failed to drop table ${table}:`, error);
     }
   }
 }

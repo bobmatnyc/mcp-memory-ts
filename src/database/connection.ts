@@ -30,7 +30,7 @@ export class DatabaseConnection {
 
       // Test the connection
       await this.client.execute('SELECT 1');
-      console.log('Database connected successfully');
+      console.error('Database connected successfully');
     } catch (error) {
       console.error('Failed to connect to database:', error);
       throw new Error(`Database connection failed: ${error}`);
@@ -54,7 +54,7 @@ export class DatabaseConnection {
     if (this.client) {
       this.client.close();
       this.client = null;
-      console.log('Database disconnected');
+      console.error('Database disconnected');
     }
   }
 
@@ -108,7 +108,7 @@ export class DatabaseConnection {
     if (this.client && 'sync' in this.client) {
       try {
         await (this.client as any).sync();
-        console.log('Database synced successfully');
+        console.error('Database synced successfully');
       } catch (error) {
         console.error('Database sync error:', error);
         throw error;

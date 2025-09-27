@@ -40,7 +40,8 @@ export class MemoryCore {
    */
   async initialize(): Promise<void> {
     await this.db.connect();
-    await initializeSchema(this.db);
+    // Skip schema initialization for existing database
+    // await initializeSchema(this.db);
     
     // Set up default user if specified in environment
     const defaultEmail = process.env.DEFAULT_USER_EMAIL || process.env.MCP_DEFAULT_USER_EMAIL;
@@ -179,7 +180,7 @@ export class MemoryCore {
             memoryTypes: options.memoryTypes,
           });
         } catch (error) {
-          console.warn('Vector search failed, falling back to text search:', error);
+          console.error('Vector search failed, falling back to text search:', error);
         }
       }
 

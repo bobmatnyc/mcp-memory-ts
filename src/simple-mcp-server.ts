@@ -134,11 +134,29 @@ class SimpleMCPServer {
           this.logDebug('Client initialized');
           return null;
 
+        case 'notifications/initialized':
+          this.logDebug('Notifications initialized');
+          return null;
+
         case 'tools/list':
           return this.handleToolsList(validId);
 
         case 'tools/call':
           return await this.handleToolsCall(validId, params);
+
+        case 'prompts/list':
+          return {
+            jsonrpc: '2.0',
+            id: validId,
+            result: { prompts: [] }
+          };
+
+        case 'resources/list':
+          return {
+            jsonrpc: '2.0',
+            id: validId,
+            result: { resources: [] }
+          };
 
         case 'ping':
           return { jsonrpc: '2.0', id: validId, result: {} };
