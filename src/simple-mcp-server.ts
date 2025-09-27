@@ -17,7 +17,7 @@ interface JsonRpcRequest {
 
 interface JsonRpcResponse {
   jsonrpc: '2.0';
-  id: string | number | null;
+  id: string | number;
   result?: any;
   error?: {
     code: number;
@@ -29,9 +29,18 @@ interface JsonRpcResponse {
 // Simple MCP Server
 class SimpleMCPServer {
   private debugEnabled = false;
+  private requestCounter = 0;
 
   constructor() {
     this.debugEnabled = process.env.MCP_DEBUG === '1';
+  }
+
+  private ensureValidId(id?: string | number | null): string | number {
+    if (id !== undefined && id !== null) {
+      return id;
+    }
+    // Generate a unique ID if none provided
+    return `auto-${++this.requestCounter}`;
   }
 
   private logDebug(...args: any[]): void {
@@ -84,7 +93,7 @@ class SimpleMCPServer {
       
       const errorResponse: JsonRpcResponse = {
         jsonrpc: '2.0',
-        id: null,
+        id: this.ensureValidId(null),
         error: {
           code: -32700,
           message: 'Parse error',
@@ -100,27 +109,29 @@ class SimpleMCPServer {
     const { id, method, params } = request;
 
     try {
+      const validId = this.ensureValidId(id);
+
       switch (method) {
         case 'initialize':
-          return this.handleInitialize(id ?? null, params);
+          return this.handleInitialize(validId, params);
 
         case 'initialized':
           this.logDebug('Client initialized');
           return null;
 
         case 'tools/list':
-          return this.handleToolsList(id ?? null);
+          return this.handleToolsList(validId);
 
         case 'tools/call':
-          return await this.handleToolsCall(id ?? null, params);
+          return await this.handleToolsCall(validId, params);
 
         case 'ping':
-          return { jsonrpc: '2.0', id: id ?? null, result: {} };
+          return { jsonrpc: '2.0', id: validId, result: {} };
 
         default:
           return {
             jsonrpc: '2.0',
-            id: id ?? null,
+            id: validId,
             error: {
               code: -32601,
               message: `Method not found: ${method}`,
@@ -131,7 +142,7 @@ class SimpleMCPServer {
       this.logError('Error processing request:', error);
       return {
         jsonrpc: '2.0',
-        id: id ?? null,
+        id: this.ensureValidId(id),
         error: {
           code: -32603,
           message: 'Internal error',
@@ -141,7 +152,7 @@ class SimpleMCPServer {
     }
   }
 
-  private handleInitialize(id: string | number | null, params: any): JsonRpcResponse {
+  private handleInitialize(id: string | number, params: any): JsonRpcResponse {
     this.logDebug('Initialize request:', params);
 
     const result = {
@@ -167,7 +178,7 @@ class SimpleMCPServer {
     };
   }
 
-  private handleToolsList(id: string | number | null): JsonRpcResponse {
+  private handleToolsList(id: string | number): JsonRpcResponse {
     const tools = [
       {
         name: 'memory_add',
@@ -211,7 +222,7 @@ class SimpleMCPServer {
     };
   }
 
-  private async handleToolsCall(id: string | number | null, params: any): Promise<JsonRpcResponse> {
+  private async handleToolsCall(id: string | number, params: any): Promise<JsonRpcResponse> {
     const { name, arguments: args } = params;
     this.logDebug(`Tool call: ${name}`, args);
 
