@@ -302,7 +302,16 @@ class SimpleMCPServer {
           break;
 
         default:
-          throw new Error(`Unknown tool: ${name}`);
+          // Return JSON-RPC error for unknown tools
+          return {
+            jsonrpc: '2.0',
+            id,
+            error: {
+              code: -32601,
+              message: `Unknown tool: ${name}`,
+              data: { toolName: name },
+            },
+          };
       }
 
       const toolResult = {
@@ -322,21 +331,16 @@ class SimpleMCPServer {
       };
     } catch (error) {
       this.logError(`Tool call error for ${name}:`, error);
-      
-      const errorResult = {
-        content: [
-          {
-            type: 'text',
-            text: `❌ Error: ${String(error)}`,
-          },
-        ],
-        isError: true,
-      };
 
+      // Return JSON-RPC error for tool execution errors
       return {
         jsonrpc: '2.0',
         id,
-        result: errorResult,
+        error: {
+          code: -32603,
+          message: 'Tool execution failed',
+          data: { toolName: name, error: String(error) },
+        },
       };
     }
   }

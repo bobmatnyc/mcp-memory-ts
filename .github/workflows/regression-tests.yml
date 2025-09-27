@@ -1,0 +1,90 @@
+name: MCP Server Regression Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  regression-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build project
+      run: npm run build
+    
+    - name: Run unit tests
+      run: npm test
+    
+    - name: Run integration tests
+      run: npm run test:integration
+    
+    - name: Run regression tests
+      run: npm run test:regression
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.node-version }}
+        path: |
+          coverage/
+          test-results.xml
+        retention-days: 7
+
+  deployment-readiness:
+    needs: regression-tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Pre-deployment validation
+      run: npm run pre-deploy
+    
+    - name: Create deployment artifact
+      run: |
+        npm run build
+        tar -czf mcp-memory-ts-deployment.tar.gz dist/ package.json package-lock.json
+    
+    - name: Upload deployment artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-ready
+        path: mcp-memory-ts-deployment.tar.gz
+        retention-days: 30
+    
+    - name: Deployment ready notification
+      run: |
+        echo "🎉 All regression tests passed!"
+        echo "✅ Deployment artifact created"
+        echo "🚀 Ready for production deployment"
