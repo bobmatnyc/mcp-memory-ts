@@ -1,0 +1,295 @@
+/**
+ * Database schema initialization and migration
+ */
+
+import type { DatabaseConnection } from './connection.js';
+
+export const SCHEMA_VERSION = 1;
+
+/**
+ * SQL statements for creating tables
+ */
+export const CREATE_TABLES = {
+  users: `
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT,
+      organization TEXT,
+      api_key TEXT,
+      oauth_provider TEXT,
+      oauth_id TEXT,
+      is_active BOOLEAN DEFAULT 1,
+      metadata TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `,
+
+  entities: `
+    CREATE TABLE IF NOT EXISTS entities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      name TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      person_type TEXT,
+      description TEXT,
+      company TEXT,
+      title TEXT,
+      email TEXT,
+      phone TEXT,
+      address TEXT,
+      website TEXT,
+      social_media TEXT,
+      notes TEXT,
+      importance INTEGER DEFAULT 2,
+      tags TEXT,
+      relationships TEXT,
+      last_interaction TEXT,
+      interaction_count INTEGER DEFAULT 0,
+      metadata TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `,
+
+  memories: `
+    CREATE TABLE IF NOT EXISTS memories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      memory_type TEXT NOT NULL,
+      importance INTEGER DEFAULT 2,
+      tags TEXT,
+      entity_ids TEXT,
+      embedding TEXT,
+      metadata TEXT,
+      is_archived BOOLEAN DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `,
+
+  interactions: `
+    CREATE TABLE IF NOT EXISTS interactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      user_prompt TEXT NOT NULL,
+      assistant_response TEXT NOT NULL,
+      context TEXT,
+      feedback TEXT,
+      sentiment TEXT,
+      metadata TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `,
+
+  learned_patterns: `
+    CREATE TABLE IF NOT EXISTS learned_patterns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      pattern_type TEXT NOT NULL,
+      pattern_data TEXT NOT NULL,
+      confidence REAL DEFAULT 0.5,
+      usage_count INTEGER DEFAULT 0,
+      last_used TEXT,
+      metadata TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `,
+
+  schema_version: `
+    CREATE TABLE IF NOT EXISTS schema_version (
+      version INTEGER PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    )
+  `,
+};
+
+/**
+ * SQL statements for creating indexes
+ */
+export const CREATE_INDEXES = {
+  users: [
+    'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)',
+    'CREATE INDEX IF NOT EXISTS idx_users_api_key ON users(api_key)',
+  ],
+  entities: [
+    'CREATE INDEX IF NOT EXISTS idx_entities_user_id ON entities(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(entity_type)',
+    'CREATE INDEX IF NOT EXISTS idx_entities_name ON entities(name)',
+    'CREATE INDEX IF NOT EXISTS idx_entities_importance ON entities(importance)',
+  ],
+  memories: [
+    'CREATE INDEX IF NOT EXISTS idx_memories_user_id ON memories(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_memories_type ON memories(memory_type)',
+    'CREATE INDEX IF NOT EXISTS idx_memories_importance ON memories(importance)',
+    'CREATE INDEX IF NOT EXISTS idx_memories_archived ON memories(is_archived)',
+    'CREATE INDEX IF NOT EXISTS idx_memories_created ON memories(created_at)',
+  ],
+  interactions: [
+    'CREATE INDEX IF NOT EXISTS idx_interactions_user_id ON interactions(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_interactions_created ON interactions(created_at)',
+  ],
+  learned_patterns: [
+    'CREATE INDEX IF NOT EXISTS idx_patterns_user_id ON learned_patterns(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_patterns_type ON learned_patterns(pattern_type)',
+  ],
+};
+
+/**
+ * Full-text search virtual tables
+ */
+export const CREATE_FTS_TABLES = {
+  memories_fts: `
+    CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
+      title, content, tags,
+      content='memories',
+      content_rowid='id'
+    )
+  `,
+  entities_fts: `
+    CREATE VIRTUAL TABLE IF NOT EXISTS entities_fts USING fts5(
+      name, description, notes, tags,
+      content='entities',
+      content_rowid='id'
+    )
+  `,
+};
+
+/**
+ * FTS triggers to keep search tables in sync
+ */
+export const CREATE_FTS_TRIGGERS = {
+  memories: [
+    `CREATE TRIGGER IF NOT EXISTS memories_fts_insert AFTER INSERT ON memories BEGIN
+      INSERT INTO memories_fts(rowid, title, content, tags) 
+      VALUES (new.id, new.title, new.content, new.tags);
+    END`,
+    `CREATE TRIGGER IF NOT EXISTS memories_fts_delete AFTER DELETE ON memories BEGIN
+      DELETE FROM memories_fts WHERE rowid = old.id;
+    END`,
+    `CREATE TRIGGER IF NOT EXISTS memories_fts_update AFTER UPDATE ON memories BEGIN
+      DELETE FROM memories_fts WHERE rowid = old.id;
+      INSERT INTO memories_fts(rowid, title, content, tags) 
+      VALUES (new.id, new.title, new.content, new.tags);
+    END`,
+  ],
+  entities: [
+    `CREATE TRIGGER IF NOT EXISTS entities_fts_insert AFTER INSERT ON entities BEGIN
+      INSERT INTO entities_fts(rowid, name, description, notes, tags) 
+      VALUES (new.id, new.name, new.description, new.notes, new.tags);
+    END`,
+    `CREATE TRIGGER IF NOT EXISTS entities_fts_delete AFTER DELETE ON entities BEGIN
+      DELETE FROM entities_fts WHERE rowid = old.id;
+    END`,
+    `CREATE TRIGGER IF NOT EXISTS entities_fts_update AFTER UPDATE ON entities BEGIN
+      DELETE FROM entities_fts WHERE rowid = old.id;
+      INSERT INTO entities_fts(rowid, name, description, notes, tags) 
+      VALUES (new.id, new.name, new.description, new.notes, new.tags);
+    END`,
+  ],
+};
+
+/**
+ * Initialize the database schema
+ */
+export async function initializeSchema(db: DatabaseConnection): Promise<void> {
+  console.log('Initializing database schema...');
+
+  try {
+    // Check current schema version
+    const currentVersion = await getCurrentSchemaVersion(db);
+    
+    if (currentVersion >= SCHEMA_VERSION) {
+      console.log(`Schema is up to date (version ${currentVersion})`);
+      return;
+    }
+
+    // Create tables
+    for (const [tableName, sql] of Object.entries(CREATE_TABLES)) {
+      console.log(`Creating table: ${tableName}`);
+      await db.execute(sql);
+    }
+
+    // Create indexes
+    for (const [tableName, indexes] of Object.entries(CREATE_INDEXES)) {
+      console.log(`Creating indexes for: ${tableName}`);
+      for (const indexSql of indexes) {
+        await db.execute(indexSql);
+      }
+    }
+
+    // Create FTS tables
+    for (const [tableName, sql] of Object.entries(CREATE_FTS_TABLES)) {
+      console.log(`Creating FTS table: ${tableName}`);
+      await db.execute(sql);
+    }
+
+    // Create FTS triggers
+    for (const [tableName, triggers] of Object.entries(CREATE_FTS_TRIGGERS)) {
+      console.log(`Creating FTS triggers for: ${tableName}`);
+      for (const triggerSql of triggers) {
+        await db.execute(triggerSql);
+      }
+    }
+
+    // Update schema version
+    await db.execute(
+      'INSERT OR REPLACE INTO schema_version (version, applied_at) VALUES (?, ?)',
+      [SCHEMA_VERSION, new Date().toISOString()]
+    );
+
+    console.log(`Schema initialized successfully (version ${SCHEMA_VERSION})`);
+  } catch (error) {
+    console.error('Failed to initialize schema:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get the current schema version
+ */
+async function getCurrentSchemaVersion(db: DatabaseConnection): Promise<number> {
+  try {
+    const result = await db.execute('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1');
+    return result.rows.length > 0 ? (result.rows[0] as any).version : 0;
+  } catch {
+    // Table doesn't exist yet
+    return 0;
+  }
+}
+
+/**
+ * Drop all tables (for testing/reset)
+ */
+export async function dropAllTables(db: DatabaseConnection): Promise<void> {
+  console.log('Dropping all tables...');
+
+  const tables = [
+    'memories_fts',
+    'entities_fts',
+    'learned_patterns',
+    'interactions',
+    'memories',
+    'entities',
+    'users',
+    'schema_version'
+  ];
+
+  for (const table of tables) {
+    try {
+      await db.execute(`DROP TABLE IF EXISTS ${table}`);
+      console.log(`Dropped table: ${table}`);
+    } catch (error) {
+      console.warn(`Failed to drop table ${table}:`, error);
+    }
+  }
+}
