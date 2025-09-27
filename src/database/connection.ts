@@ -145,9 +145,16 @@ export function initDatabaseFromEnv(): DatabaseConnection {
     syncUrl: process.env.TURSO_SYNC_URL,
   };
 
-  if (!config.url || !config.authToken) {
+  if (!config.url) {
     throw new Error(
-      'Database configuration missing. Set TURSO_URL and TURSO_AUTH_TOKEN environment variables.'
+      'Database configuration missing. Set TURSO_URL environment variable.'
+    );
+  }
+
+  // For local file databases, auth token is not required
+  if (!config.url.startsWith('file:') && !config.authToken) {
+    throw new Error(
+      'Database auth token missing. Set TURSO_AUTH_TOKEN environment variable for remote databases.'
     );
   }
 

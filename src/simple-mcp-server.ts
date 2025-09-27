@@ -6,6 +6,9 @@
 
 import { stdin, stdout } from 'process';
 import { createInterface } from 'readline';
+import { initDatabaseFromEnv } from './database/index.js';
+import { MemoryCore } from './core/index.js';
+import { MemoryType, ImportanceLevel, MCPToolResultStatus } from './types/enums.js';
 
 // Simple types
 interface JsonRpcRequest {
@@ -30,6 +33,7 @@ interface JsonRpcResponse {
 class SimpleMCPServer {
   private debugEnabled = false;
   private requestCounter = 0;
+  private memoryCore: MemoryCore | null = null;
 
   constructor() {
     this.debugEnabled = process.env.MCP_DEBUG === '1';
@@ -55,6 +59,17 @@ class SimpleMCPServer {
 
   async start(): Promise<void> {
     this.logDebug('Starting Simple MCP Memory Server...');
+
+    // Initialize database and memory core
+    try {
+      const db = initDatabaseFromEnv();
+      this.memoryCore = new MemoryCore(db, process.env.OPENAI_API_KEY);
+      await this.memoryCore.initialize();
+      this.logDebug('Memory core initialized successfully');
+    } catch (error) {
+      this.logError('Failed to initialize memory core:', error);
+      throw error;
+    }
 
     const rl = createInterface({
       input: stdin,
@@ -226,22 +241,66 @@ class SimpleMCPServer {
     const { name, arguments: args } = params;
     this.logDebug(`Tool call: ${name}`, args);
 
+    if (!this.memoryCore) {
+      throw new Error('Memory core not initialized');
+    }
+
     let resultText = '';
 
     try {
       switch (name) {
         case 'memory_add':
-          resultText = `✅ Memory "${args.title}" added successfully!\n\nContent: ${args.content}\nTags: ${args.tags?.join(', ') || 'none'}`;
+          const addResult = await this.memoryCore.addMemory(
+            args.title,
+            args.content,
+            MemoryType.MEMORY,
+            {
+              tags: args.tags,
+              importance: ImportanceLevel.MEDIUM,
+              generateEmbedding: true,
+            }
+          );
+
+          if (addResult.status === MCPToolResultStatus.SUCCESS) {
+            const memoryData = addResult.data as any;
+            resultText = `✅ Memory "${args.title}" added successfully!\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nTags: ${args.tags?.join(', ') || 'none'}`;
+          } else {
+            resultText = `❌ Failed to add memory: ${addResult.error || addResult.message}`;
+          }
           break;
-        
+
         case 'memory_search':
-          resultText = `🔍 Search results for "${args.query}":\n\n1. Sample Memory 1\n   Content: This is a sample memory that matches your query.\n   Tags: sample, test\n\n2. Sample Memory 2\n   Content: Another sample memory for demonstration.\n   Tags: demo, example`;
+          const searchResult = await this.memoryCore.searchMemories(args.query, {
+            limit: args.limit || 10,
+            threshold: 0.7,
+          });
+
+          if (searchResult.status === MCPToolResultStatus.SUCCESS && searchResult.data) {
+            const memories = searchResult.data as any[];
+            if (memories.length === 0) {
+              resultText = `🔍 No memories found for "${args.query}"`;
+            } else {
+              resultText = `🔍 Found ${memories.length} memories for "${args.query}":\n\n`;
+              memories.forEach((memory, index) => {
+                resultText += `${index + 1}. ${memory.title}\n   Content: ${memory.content.substring(0, 100)}${memory.content.length > 100 ? '...' : ''}\n   Tags: ${memory.tags || 'none'}\n   Created: ${new Date(memory.createdAt).toLocaleDateString()}\n\n`;
+              });
+            }
+          } else {
+            resultText = `❌ Search failed: ${searchResult.error || searchResult.message}`;
+          }
           break;
-        
+
         case 'get_statistics':
-          resultText = `📊 Memory Statistics:\n\n• Total Memories: 42\n• Total Entities: 15\n• Memories by Type:\n  - Personal: 20\n  - Professional: 15\n  - Technical: 7\n• Vector Embeddings: 35/42 (83%)`;
+          const statsResult = await this.memoryCore.getStatistics();
+
+          if (statsResult.status === MCPToolResultStatus.SUCCESS && statsResult.data) {
+            const stats = statsResult.data as any;
+            resultText = `📊 Memory Statistics:\n\n• Total Memories: ${stats.totalMemories}\n• Total Entities: ${stats.totalEntities}\n• Memories by Type:\n  - Memory: ${stats.memoryTypes?.memory || 0}\n  - Interaction: ${stats.memoryTypes?.interaction || 0}\n  - Technical: ${stats.memoryTypes?.technical || 0}\n• Vector Embeddings: ${stats.embeddedMemories}/${stats.totalMemories} (${Math.round((stats.embeddedMemories / Math.max(stats.totalMemories, 1)) * 100)}%)`;
+          } else {
+            resultText = `❌ Failed to get statistics: ${statsResult.error || statsResult.message}`;
+          }
           break;
-        
+
         default:
           throw new Error(`Unknown tool: ${name}`);
       }

@@ -5,13 +5,19 @@
 import OpenAI from 'openai';
 
 export class EmbeddingService {
-  private openai: OpenAI;
+  private openai: OpenAI | null;
   private model: string;
 
   constructor(apiKey?: string, model = 'text-embedding-3-small') {
-    this.openai = new OpenAI({
-      apiKey: apiKey || process.env.OPENAI_API_KEY,
-    });
+    const key = apiKey || process.env.OPENAI_API_KEY;
+    if (key && key !== 'test-key') {
+      this.openai = new OpenAI({
+        apiKey: key,
+      });
+    } else {
+      this.openai = null;
+      console.warn('OpenAI API key not provided - embeddings will be disabled');
+    }
     this.model = model;
   }
 
@@ -19,6 +25,11 @@ export class EmbeddingService {
    * Generate embeddings for text
    */
   async generateEmbedding(text: string): Promise<number[]> {
+    if (!this.openai) {
+      // Return empty array when OpenAI is not available
+      return [];
+    }
+
     try {
       const response = await this.openai.embeddings.create({
         model: this.model,
