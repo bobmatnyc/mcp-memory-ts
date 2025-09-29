@@ -74,9 +74,9 @@
   "/Users/masa/Projects/managed/mcp-memory-ts/VERIFICATION_REPORT.md": 1759107887.7593768,
   "/Users/masa/Projects/managed/mcp-memory-ts/.claude-mpm/logs/prompts/agent_ops_20250929_014140_856.md": 1759110100.8566103,
   "/Users/masa/Projects/managed/mcp-memory-ts/.claude-mpm/memories/ops_memories.md": 1759110100.8434339,
-  "/Users/masa/Projects/managed/mcp-memory-ts/vercel.json": 1759117712.087263,
-  "/Users/masa/Projects/managed/mcp-memory-ts/api/index.ts": 1759117572.0064578,
-  "/Users/masa/Projects/managed/mcp-memory-ts/api/middleware/clerk-auth.ts": 1759110725.078725,
+  "/Users/masa/Projects/managed/mcp-memory-ts/vercel.json": 1759119057.232089,
+  "/Users/masa/Projects/managed/mcp-memory-ts/api/index.ts": 1759118864.4691203,
+  "/Users/masa/Projects/managed/mcp-memory-ts/api/middleware/clerk-auth.ts": 1759118939.6900873,
   "/Users/masa/Projects/managed/mcp-memory-ts/api/auth/webhook.ts": 1759110731.8352075,
   "/Users/masa/Projects/managed/mcp-memory-ts/scripts/deploy-vercel.sh": 1759110295.3713586,
   "/Users/masa/Projects/managed/mcp-memory-ts/scripts/setup-vercel-env.sh": 1759110322.2037823,
@@ -89,5 +89,8 @@
   "/Users/masa/Projects/managed/mcp-memory-ts/.vercel/README.txt": 1759111033.8534188,
   "/Users/masa/Projects/managed/mcp-memory-ts/.claude-mpm/logs/prompts/agent_engineer_20250929_020453_192.md": 1759111493.1922956,
   "/Users/masa/Projects/managed/mcp-memory-ts/.claude-mpm/logs/prompts/agent_engineer_20250929_034220_160.md": 1759117340.1611602,
-  "/Users/masa/Projects/managed/mcp-memory-ts/scripts/test-api-endpoints.ts": 1759117646.8922558
+  "/Users/masa/Projects/managed/mcp-memory-ts/scripts/test-api-endpoints.ts": 1759117646.8922558,
+  "/Users/masa/Projects/managed/mcp-memory-ts/.claude-mpm/logs/prompts/agent_ops_20250929_035003_539.md": 1759117803.5407128,
+  "/Users/masa/Projects/managed/mcp-memory-ts/.claude-mpm/logs/prompts/agent_engineer_20250929_040548_338.md": 1759118748.3391306,
+  "/Users/masa/Projects/managed/mcp-memory-ts/API-SERVER-SIDE.md": 1759119156.4803922
 }

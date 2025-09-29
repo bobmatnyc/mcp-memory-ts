@@ -1,6 +1,6 @@
 /**
  * Main Vercel serverless function entry point
- * Handles all API requests with Clerk authentication
+ * Handles all API requests with server-side Clerk authentication
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -213,6 +213,13 @@ const generateLandingPageHTML = () => `
                     <p class="description">Health check endpoint - returns service status</p>
 
                     <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <span class="path">/api/config</span>
+                        <span class="auth-badge public">PUBLIC</span>
+                    </div>
+                    <p class="description">Get client configuration including Clerk public key</p>
+
+                    <div class="endpoint">
                         <span class="method post">POST</span>
                         <span class="path">/api/memories</span>
                         <span class="auth-badge required">AUTH</span>
@@ -331,6 +338,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
           documentation: 'https://mcp-memory-ts.vercel.app/',
           endpoints: {
             'GET /api/health': 'Health check (public)',
+            'GET /api/config': 'Client configuration (public)',
             'POST /api/memories': 'Add a new memory (auth required)',
             'GET /api/memories/search': 'Search memories (auth required)',
             'POST /api/entities': 'Create an entity (auth required)',
@@ -358,6 +366,25 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // Public configuration endpoint for client-side initialization
+    if (path === '/api/config' && method === 'GET') {
+      // Return public configuration that's safe to expose to clients
+      return res.status(200).json({
+        success: true,
+        data: {
+          clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || 'pk_test_bGl2aW5nLXBhbmdvbGluLTUxLmNsZXJrLmFjY291bnRzLmRldiQ',
+          apiVersion: '1.0.0',
+          features: {
+            vectorSearch: true,
+            entityManagement: true,
+            memoryTypes: ['MEMORY', 'LEARNED', 'SYSTEM'],
+            importanceLevels: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+          }
+        },
+        message: 'Configuration loaded successfully'
+      });
+    }
+
     // API documentation endpoint (no auth required)
     if (path === '/api' && method === 'GET') {
       return res.status(200).json({
@@ -371,6 +398,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
             'GET /': 'API documentation (HTML)',
             'GET /api': 'API documentation (JSON)',
             'GET /api/health': 'Health check endpoint',
+            'GET /api/config': 'Client configuration with Clerk public key',
           },
           authenticated: {
             memories: {
@@ -435,10 +463,10 @@ async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      // Verify the JWT token with Clerk
+      // Verify the JWT token with Clerk (server-side only)
       const payload = await verifyToken(authToken, {
         secretKey,
-        authorizedParties: ['https://mcp-memory-ts.vercel.app', 'http://localhost:3000'],
+        // Remove authorizedParties for pure server-side validation
       });
 
       userId = payload.sub; // Get user ID from token

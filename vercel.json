@@ -1,15 +1,54 @@
 {
-  "version": 2,
   "functions": {
     "api/index.ts": {
       "maxDuration": 30,
-      "runtime": "nodejs20.x"
+      "memory": 1024
+    },
+    "api/auth/webhook.ts": {
+      "maxDuration": 10,
+      "memory": 512
     }
   },
+  "rewrites": [
+    {
+      "source": "/api/auth/webhook",
+      "destination": "/api/auth/webhook"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    }
+  ],
   "env": {
     "NODE_ENV": "production",
-    "ALLOW_DEV_AUTH": "true"
+    "ALLOW_DEV_AUTH": "false"
   },
-  "installCommand": "npm install",
-  "buildCommand": "npm run build:vercel"
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ]
 }

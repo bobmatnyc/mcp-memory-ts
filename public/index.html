@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Memory Service - Cloud-based AI Memory Management</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/logo.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            position: relative;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 25px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .auth-button, .sign-out-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .auth-button:hover, .sign-out-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .welcome-section {
+            text-align: center;
+            margin: 60px 0;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .memory-section {
+            margin-top: 40px;
+        }
+
+        .search-container {
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+        }
+
+        .memories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .memory-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .memory-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .memory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .memory-type {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .memory-importance {
+            display: flex;
+            gap: 3px;
+        }
+
+        .importance-star {
+            color: #ffd700;
+            font-size: 1rem;
+        }
+
+        .memory-content {
+            margin-bottom: 15px;
+            line-height: 1.6;
+            opacity: 0.95;
+        }
+
+        .memory-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        .memory-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .memory-tag {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 50px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+
+        .empty-state-title {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .success-message {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                align-items: center;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .memories-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .welcome-title {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 20px 15px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="/logo.png" alt="MCP Memory Service" class="logo">
+                <h1>MCP Memory Service</h1>
+            </div>
+            <div class="user-section">
+                <div id="user-info" class="user-info hidden">
+                    <img id="user-avatar" class="user-avatar" alt="User avatar">
+                    <span id="user-email"></span>
+                </div>
+                <button id="auth-button" class="auth-button">Sign in with Google</button>
+                <button id="sign-out-button" class="sign-out-button hidden">Sign Out</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Welcome Section (shown when not authenticated) -->
+        <div id="welcome-section" class="welcome-section">
+            <h2 class="welcome-title">Welcome to MCP Memory Service</h2>
+            <p class="welcome-subtitle">
+                Cloud-based vector memory service for AI assistants via Model Context Protocol.
+                Sign in to access your persistent, searchable memory with semantic embeddings.
+            </p>
+            <button id="welcome-auth-button" class="auth-button">Sign in with Google to Get Started</button>
+        </div>
+
+        <!-- Memory Section (shown when authenticated) -->
+        <div id="memory-section" class="memory-section hidden">
+            <div class="stats-container" id="stats-container">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-memories">0</div>
+                    <div class="stat-label">Total Memories</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="recent-memories">0</div>
+                    <div class="stat-label">Recent (7 days)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="high-importance">0</div>
+                    <div class="stat-label">High Importance</div>
+                </div>
+            </div>
+
+            <div class="search-container">
+                <input
+                    type="text"
+                    id="search-input"
+                    class="search-input"
+                    placeholder="Search your memories... (semantic search powered by AI)"
+                >
+            </div>
+
+            <div class="error-message" id="error-message"></div>
+            <div class="success-message" id="success-message"></div>
+
+            <div class="loading-spinner" id="loading-spinner"></div>
+
+            <div id="memories-container">
+                <div class="memories-grid" id="memories-grid"></div>
+                <div class="empty-state hidden" id="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <h3 class="empty-state-title">No memories found</h3>
+                    <p class="empty-state-subtitle">Start creating memories through your AI assistant interactions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Clerk from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js"></script>
+
+    <!-- Main Application Script -->
+    <script src="/app.js"></script>
+</body>
+</html>
