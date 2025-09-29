@@ -219,7 +219,7 @@ export class MemoryCore {
   }
 
   async getMemory(
-    memoryId: number,
+    memoryId: string,
     options: { userId?: string } = {}
   ): Promise<MCPToolResult> {
     try {
@@ -253,7 +253,7 @@ export class MemoryCore {
   }
 
   async updateMemory(
-    memoryId: number,
+    memoryId: string,
     updates: {
       title?: string;
       content?: string;
@@ -323,7 +323,7 @@ export class MemoryCore {
   }
 
   async deleteMemory(
-    memoryId: number,
+    memoryId: string,
     options: { userId?: string } = {}
   ): Promise<MCPToolResult> {
     try {

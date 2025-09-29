@@ -5,16 +5,17 @@
 import type { DatabaseConnection } from './connection.js';
 import type { User, Entity, Memory, Interaction } from '../types/base.js';
 import { sanitizeTags, parseMetadata, stringifyMetadata } from '../models/index.js';
+import { SchemaCompatibility, ApiKeySecurity } from './compatibility.js';
 
 export class DatabaseOperations {
   constructor(private db: DatabaseConnection) {}
 
   // User operations
   async createUser(user: User): Promise<User> {
-    // Use a simpler insert that matches the existing Python schema
+    // Use the actual database columns including api_key_hash
     const sql = `
-      INSERT INTO users (id, email, name, organization, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, email, name, organization, api_key_hash, is_active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     await this.db.execute(sql, [
@@ -22,8 +23,10 @@ export class DatabaseOperations {
       user.email,
       user.name || null,
       user.organization || null,
-      user.createdAt,
-      user.updatedAt,
+      user.apiKey ? ApiKeySecurity.hashApiKey(user.apiKey) : null, // Hash API key if provided
+      user.isActive !== undefined ? (user.isActive ? 1 : 0) : 1,
+      user.createdAt || new Date().toISOString(),
+      user.updatedAt || new Date().toISOString(),
     ]);
 
     return user;
@@ -40,7 +43,15 @@ export class DatabaseOperations {
   }
 
   async getUserByApiKey(apiKey: string): Promise<User | null> {
-    const result = await this.db.execute('SELECT * FROM users WHERE api_key = ?', [apiKey]);
+    // Hash the API key for comparison
+    const hashedKey = ApiKeySecurity.hashApiKey(apiKey);
+
+    // Query using api_key_hash column (the actual column in the database)
+    const result = await this.db.execute(
+      'SELECT * FROM users WHERE api_key_hash = ?',
+      [hashedKey]
+    );
+
     return result.rows.length > 0 ? this.mapRowToUser(result.rows[0] as any) : null;
   }
 
@@ -51,8 +62,8 @@ export class DatabaseOperations {
     for (const [key, value] of Object.entries(updates)) {
       if (key === 'id' || value === undefined) continue;
       
-      const dbKey = key === 'isActive' ? 'is_active' : 
-                   key === 'apiKey' ? 'api_key' :
+      const dbKey = key === 'isActive' ? 'is_active' :
+                   key === 'apiKey' ? 'api_key_hash' :  // Use api_key_hash for new schema
                    key === 'oauthProvider' ? 'oauth_provider' :
                    key === 'oauthId' ? 'oauth_id' :
                    key === 'createdAt' ? 'created_at' :
@@ -64,6 +75,9 @@ export class DatabaseOperations {
         values.push(stringifyMetadata(value as Record<string, unknown>));
       } else if (key === 'isActive') {
         values.push(value ? 1 : 0);
+      } else if (key === 'apiKey') {
+        // Hash API key before storing
+        values.push(ApiKeySecurity.hashApiKey(value as string));
       } else {
         values.push(value);
       }
@@ -90,39 +104,41 @@ export class DatabaseOperations {
 
   // Entity operations
   async createEntity(entity: Omit<Entity, 'id'>): Promise<Entity> {
+    // Use compatibility layer to map entity fields
+    const mappedEntity = SchemaCompatibility.mapEntityForDatabase(entity);
+
+    // Generate UUID for the entity (entities table uses UUID as primary key)
+    const entityId = SchemaCompatibility.generateUUID();
+
+    // Only use columns that actually exist in the database
     const sql = `
-      INSERT INTO entities (user_id, name, entity_type, person_type, description, company, 
-                           title, email, phone, address, website, social_media, notes, 
-                           importance, tags, relationships, last_interaction, interaction_count,
-                           metadata, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO entities (id, user_id, name, entity_type, person_type, description,
+                           first_name, last_name, company, title, contact_info,
+                           notes, tags, metadata, active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const result = await this.db.execute(sql, [
-      entity.userId || null,
-      entity.name,
-      entity.entityType,
-      entity.personType || null,
-      entity.description || null,
-      entity.company || null,
-      entity.title || null,
-      entity.email || null,
-      entity.phone || null,
-      entity.address || null,
-      entity.website || null,
-      entity.socialMedia || null,
-      entity.notes || null,
-      entity.importance,
-      JSON.stringify(sanitizeTags(entity.tags)),
-      entity.relationships || null,
-      entity.lastInteraction || null,
-      entity.interactionCount,
-      stringifyMetadata(entity.metadata),
-      entity.createdAt,
-      entity.updatedAt,
+      entityId,
+      mappedEntity.user_id || mappedEntity.userId || null,
+      mappedEntity.name,
+      mappedEntity.entity_type || mappedEntity.entityType,
+      mappedEntity.person_type || mappedEntity.personType || null,
+      mappedEntity.description || null,
+      mappedEntity.first_name || null,
+      mappedEntity.last_name || null,
+      mappedEntity.company || null,
+      mappedEntity.title || null,
+      mappedEntity.contact_info || null, // Stores email/phone/address as JSON
+      mappedEntity.notes || null,
+      typeof mappedEntity.tags === 'string' ? mappedEntity.tags : JSON.stringify(sanitizeTags(mappedEntity.tags)),
+      typeof mappedEntity.metadata === 'string' ? mappedEntity.metadata : stringifyMetadata(mappedEntity.metadata),
+      mappedEntity.active !== undefined ? (mappedEntity.active ? 1 : 0) : 1,
+      mappedEntity.created_at || mappedEntity.createdAt || new Date().toISOString(),
+      mappedEntity.updated_at || mappedEntity.updatedAt || new Date().toISOString(),
     ]);
 
-    return { ...entity, id: (result as any).lastInsertRowid };
+    return { ...entity, id: entityId };
   }
 
   async getEntityById(id: number | string): Promise<Entity | null> {
@@ -151,28 +167,38 @@ export class DatabaseOperations {
 
   // Memory operations
   async createMemory(memory: Omit<Memory, 'id'>): Promise<Memory> {
+    // Use compatibility layer to map memory fields
+    const mappedMemory = SchemaCompatibility.mapMemoryForDatabase(memory);
+
+    // Generate a UUID for the TEXT PRIMARY KEY
+    const memoryId = SchemaCompatibility.generateUUID();
+
+    // Only use columns that actually exist in the database
     const sql = `
-      INSERT INTO memories (user_id, title, content, memory_type, importance, tags, 
-                           entity_ids, embedding, metadata, is_archived, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO memories (id, user_id, title, content, memory_type, importance,
+                           tags, entity_ids, embedding, metadata, is_archived, active,
+                           created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const result = await this.db.execute(sql, [
-      memory.userId || null,
-      memory.title,
-      memory.content,
-      memory.memoryType,
-      memory.importance,
-      JSON.stringify(sanitizeTags(memory.tags)),
-      JSON.stringify(memory.entityIds || []),
-      JSON.stringify(memory.embedding || []),
-      stringifyMetadata(memory.metadata),
-      memory.isArchived ? 1 : 0,
-      memory.createdAt,
-      memory.updatedAt,
+    await this.db.execute(sql, [
+      memoryId,
+      mappedMemory.user_id || mappedMemory.userId || null,
+      mappedMemory.title,
+      mappedMemory.content,
+      mappedMemory.memory_type || mappedMemory.memoryType,
+      mappedMemory.importance,
+      typeof mappedMemory.tags === 'string' ? mappedMemory.tags : JSON.stringify(sanitizeTags(mappedMemory.tags)),
+      typeof mappedMemory.entity_ids === 'string' ? mappedMemory.entity_ids : JSON.stringify(mappedMemory.entity_ids || mappedMemory.entityIds || []),
+      typeof mappedMemory.embedding === 'string' ? mappedMemory.embedding : JSON.stringify(mappedMemory.embedding || []),
+      typeof mappedMemory.metadata === 'string' ? mappedMemory.metadata : stringifyMetadata(mappedMemory.metadata),
+      mappedMemory.is_archived !== undefined ? mappedMemory.is_archived : (mappedMemory.isArchived ? 1 : 0),
+      mappedMemory.active !== undefined ? mappedMemory.active : 1,
+      mappedMemory.created_at || mappedMemory.createdAt || new Date().toISOString(),
+      mappedMemory.updated_at || mappedMemory.updatedAt || new Date().toISOString(),
     ]);
 
-    return { ...memory, id: (result as any).lastInsertRowid };
+    return { ...memory, id: memoryId };
   }
 
   async getMemoryById(id: number | string): Promise<Memory | null> {
@@ -206,10 +232,10 @@ export class DatabaseOperations {
       email: row.email,
       name: row.name,
       organization: row.organization,
-      apiKey: row.api_key,
+      apiKey: row.api_key_hash, // Use the actual column name from database
       oauthProvider: row.oauth_provider,
       oauthId: row.oauth_id,
-      isActive: Boolean(row.is_active),
+      isActive: row.is_active !== undefined ? Boolean(row.is_active) : true,
       metadata: parseMetadata(row.metadata),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -217,47 +243,12 @@ export class DatabaseOperations {
   }
 
   private mapRowToEntity(row: any): Entity {
-    return {
-      id: row.id,
-      userId: row.user_id,
-      name: row.name,
-      entityType: row.entity_type,
-      personType: row.person_type,
-      description: row.description,
-      company: row.company,
-      title: row.title,
-      email: row.email,
-      phone: row.phone,
-      address: row.address,
-      website: row.website,
-      socialMedia: row.social_media,
-      notes: row.notes,
-      importance: row.importance,
-      tags: JSON.parse(row.tags || '[]'),
-      relationships: row.relationships,
-      lastInteraction: row.last_interaction,
-      interactionCount: row.interaction_count,
-      metadata: parseMetadata(row.metadata),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
+    // Use compatibility layer for proper field mapping
+    return SchemaCompatibility.mapEntityFromDatabase(row);
   }
 
   private mapRowToMemory(row: any): Memory {
-    return {
-      id: row.id,
-      userId: row.user_id,
-      title: row.title,
-      content: row.content,
-      memoryType: row.memory_type,
-      importance: row.importance,
-      tags: JSON.parse(row.tags || '[]'),
-      entityIds: JSON.parse(row.entity_ids || '[]'),
-      embedding: JSON.parse(row.embedding || '[]'),
-      metadata: parseMetadata(row.metadata),
-      isArchived: Boolean(row.is_archived),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
+    // Use compatibility layer for proper field mapping
+    return SchemaCompatibility.mapMemoryFromDatabase(row);
   }
 }

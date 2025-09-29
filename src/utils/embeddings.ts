@@ -47,6 +47,11 @@ export class EmbeddingService {
    * Generate embeddings for multiple texts
    */
   async generateEmbeddings(texts: string[]): Promise<number[][]> {
+    if (!this.openai) {
+      // Return empty arrays when OpenAI is not available
+      return texts.map(() => []);
+    }
+
     try {
       const response = await this.openai.embeddings.create({
         model: this.model,

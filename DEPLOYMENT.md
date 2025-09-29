@@ -1,396 +1,373 @@
-# Deployment Guide
+# Vercel Deployment Guide for MCP Memory Service
 
-This guide covers deploying the MCP Memory Service TypeScript implementation to various cloud platforms.
+This guide provides step-by-step instructions for deploying the MCP Memory TypeScript service to Vercel with Clerk authentication.
 
-## Prerequisites
+## 🚀 Quick Start
 
-- Node.js 18+ 
-- Turso database account
-- OpenAI API key
-- Cloud platform account (Fly.io, Railway, Vercel, etc.)
+1. **Install dependencies and build**:
+   ```bash
+   npm install
+   npm run build:vercel
+   ```
 
-## Environment Configuration
+2. **Set up environment variables**:
+   ```bash
+   npm run setup:vercel
+   ```
 
-Create a `.env` file with the following variables:
+3. **Deploy to Vercel**:
+   ```bash
+   npm run deploy:vercel
+   ```
+
+## 📋 Prerequisites
+
+- [Vercel CLI](https://vercel.com/cli) installed globally
+- [Turso](https://turso.tech/) database with LibSQL
+- [OpenAI API key](https://platform.openai.com/api-keys) for embeddings
+- [Clerk](https://clerk.com/) account for authentication
+
+## 🔧 Environment Variables
+
+### Required Variables
+
+Set these in your Vercel dashboard or via CLI:
 
 ```bash
-# Database Configuration
+# Database (Turso/LibSQL)
 TURSO_URL=libsql://your-database.turso.io
 TURSO_AUTH_TOKEN=your-auth-token
 
-# OpenAI Configuration
+# OpenAI for embeddings
 OPENAI_API_KEY=your-openai-api-key
 
-# Server Configuration
-PORT=3000
-HOST=0.0.0.0
-LOG_LEVEL=info
-
-# Optional Configuration
-DEFAULT_USER_EMAIL=admin@yourdomain.com
-MCP_DEBUG=0
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_touching-gar-14.clerk.accounts.dev
+CLERK_SECRET_KEY=sk_test_zRXJyKhoYuXlNaqiiqjiSDDCyt7jhLFmBEmp2npfYc
+CLERK_WEBHOOK_SECRET=whsec_your-webhook-secret
 ```
 
-## Turso Database Setup
+### Environment Setup Script
 
-1. **Create a Turso account** at [turso.tech](https://turso.tech)
+Use the automated setup script:
 
-2. **Create a new database:**
+```bash
+./scripts/setup-vercel-env.sh
+```
+
+This script will:
+- Check Vercel CLI installation
+- Link your project
+- Set up environment variables for all environments
+- Configure production-optimized settings
+
+## 🏗️ Project Structure
+
+```
+├── api/                           # Vercel serverless functions
+│   ├── index.ts                   # Main API handler
+│   ├── auth/
+│   │   └── webhook.ts             # Clerk webhook handler
+│   └── middleware/
+│       ├── clerk-auth.ts          # Authentication middleware
+│       └── cors.ts                # CORS configuration
+├── src/                           # Source code
+├── scripts/
+│   ├── deploy-vercel.sh           # Deployment script
+│   └── setup-vercel-env.sh        # Environment setup
+├── vercel.json                    # Vercel configuration
+├── tsconfig.vercel.json           # TypeScript config for Vercel
+└── .env.production                # Production environment template
+```
+
+## 🔐 Authentication Setup
+
+### 1. Clerk Configuration
+
+1. **Create Clerk Application**:
+   - Go to [Clerk Dashboard](https://dashboard.clerk.com)
+   - Create a new application
+   - Get your publishable and secret keys
+
+2. **Configure Webhook**:
+   - In Clerk dashboard, go to Webhooks
+   - Add endpoint: `https://your-deployment.vercel.app/api/auth/webhook`
+   - Select events: `user.created`, `user.updated`, `user.deleted`
+   - Copy webhook secret
+
+### 2. Environment Variables
+
+Update the provided keys in your environment:
+
+```bash
+# Already provided for you:
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_touching-gar-14.clerk.accounts.dev
+CLERK_SECRET_KEY=sk_test_zRXJyKhoYuXlNaqiiqjiSDDCyt7jhLFmBEmp2npfYc
+
+# You need to set:
+CLERK_WEBHOOK_SECRET=whsec_your-actual-webhook-secret
+```
+
+## 📡 API Endpoints
+
+After deployment, your API will be available at:
+
+```
+https://your-deployment.vercel.app/api
+```
+
+### Available Endpoints:
+
+- `GET /api/health` - Health check (no auth)
+- `GET /api` - Service information (no auth)
+- `POST /api/memories` - Add memory
+- `GET /api/memories/search` - Search memories
+- `POST /api/entities` - Create entity
+- `GET /api/entities/search` - Search entities
+- `GET /api/search` - Unified search
+- `GET /api/statistics` - User statistics
+- `POST /api/users` - Create user
+- `POST /api/auth/webhook` - Clerk webhook
+
+### Authentication
+
+Include Clerk token in requests:
+
+```bash
+# Using Authorization header
+curl -H "Authorization: Bearer your-clerk-token" \
+     https://your-deployment.vercel.app/api/memories
+
+# Using custom header
+curl -H "x-clerk-auth-token: your-clerk-token" \
+     https://your-deployment.vercel.app/api/memories
+```
+
+## 🐍 Python Client Usage
+
+Use the provided Python client:
+
+```python
+from examples.python_client import MemoryServiceClient, MemoryServiceConfig
+
+config = MemoryServiceConfig(
+    base_url='https://your-deployment.vercel.app',
+    auth_token='your-clerk-token'
+)
+
+client = MemoryServiceClient(config)
+
+# Health check
+health = client.health_check()
+print(health)
+
+# Add memory
+result = client.add_memory(
+    title="Test Memory",
+    content="This is a test memory from Python",
+    tags=["test", "python"]
+)
+print(result)
+```
+
+## 🚀 Deployment Process
+
+### Automated Deployment
+
+```bash
+# Full deployment with checks
+npm run deploy:vercel
+
+# Or step by step:
+npm run type-check
+npm run lint:fix
+npm run build:vercel
+vercel --prod
+```
+
+### Manual Deployment
+
+1. **Build the project**:
    ```bash
-   turso db create mcp-memory-ts
+   npm run build:vercel
    ```
 
-3. **Get the database URL:**
+2. **Deploy to Vercel**:
    ```bash
-   turso db show mcp-memory-ts
-   ```
-
-4. **Create an auth token:**
-   ```bash
-   turso db tokens create mcp-memory-ts
-   ```
-
-5. **Initialize the database schema:**
-   ```bash
-   npm run init-db
-   ```
-
-## Deployment Options
-
-### Option 1: Fly.io (Recommended)
-
-1. **Install Fly CLI:**
-   ```bash
-   curl -L https://fly.io/install.sh | sh
-   ```
-
-2. **Login to Fly:**
-   ```bash
-   fly auth login
-   ```
-
-3. **Create fly.toml:**
-   ```toml
-   app = "mcp-memory-ts"
-   primary_region = "sjc"
-
-   [build]
-     builder = "heroku/buildpacks:20"
-
-   [env]
-     PORT = "8080"
-     NODE_ENV = "production"
-
-   [[services]]
-     http_checks = []
-     internal_port = 8080
-     processes = ["app"]
-     protocol = "tcp"
-     script_checks = []
-
-     [services.concurrency]
-       hard_limit = 25
-       soft_limit = 20
-       type = "connections"
-
-     [[services.ports]]
-       force_https = true
-       handlers = ["http"]
-       port = 80
-
-     [[services.ports]]
-       handlers = ["tls", "http"]
-       port = 443
-
-     [[services.tcp_checks]]
-       grace_period = "1s"
-       interval = "15s"
-       restart_limit = 0
-       timeout = "2s"
-   ```
-
-4. **Set environment secrets:**
-   ```bash
-   fly secrets set TURSO_URL="your-database-url"
-   fly secrets set TURSO_AUTH_TOKEN="your-auth-token"
-   fly secrets set OPENAI_API_KEY="your-openai-key"
-   fly secrets set DEFAULT_USER_EMAIL="admin@yourdomain.com"
-   ```
-
-5. **Deploy:**
-   ```bash
-   fly deploy
-   ```
-
-### Option 2: Railway
-
-1. **Install Railway CLI:**
-   ```bash
-   npm install -g @railway/cli
-   ```
-
-2. **Login and create project:**
-   ```bash
-   railway login
-   railway init
-   ```
-
-3. **Set environment variables:**
-   ```bash
-   railway variables set TURSO_URL="your-database-url"
-   railway variables set TURSO_AUTH_TOKEN="your-auth-token"
-   railway variables set OPENAI_API_KEY="your-openai-key"
-   railway variables set DEFAULT_USER_EMAIL="admin@yourdomain.com"
-   ```
-
-4. **Deploy:**
-   ```bash
-   railway up
-   ```
-
-### Option 3: Vercel (API Server Only)
-
-1. **Install Vercel CLI:**
-   ```bash
-   npm install -g vercel
-   ```
-
-2. **Create vercel.json:**
-   ```json
-   {
-     "version": 2,
-     "builds": [
-       {
-         "src": "dist/api/server.js",
-         "use": "@vercel/node"
-       }
-     ],
-     "routes": [
-       {
-         "src": "/(.*)",
-         "dest": "dist/api/server.js"
-       }
-     ],
-     "env": {
-       "NODE_ENV": "production"
-     }
-   }
-   ```
-
-3. **Set environment variables:**
-   ```bash
-   vercel env add TURSO_URL
-   vercel env add TURSO_AUTH_TOKEN
-   vercel env add OPENAI_API_KEY
-   vercel env add DEFAULT_USER_EMAIL
-   ```
-
-4. **Deploy:**
-   ```bash
-   npm run build
    vercel --prod
    ```
 
-### Option 4: Docker
-
-1. **Create Dockerfile:**
-   ```dockerfile
-   FROM node:18-alpine
-
-   WORKDIR /app
-
-   # Copy package files
-   COPY package*.json ./
-   COPY tsconfig.json ./
-
-   # Install dependencies
-   RUN npm ci --only=production
-
-   # Copy source code
-   COPY src/ ./src/
-
-   # Build the application
-   RUN npm run build
-
-   # Expose port
-   EXPOSE 3000
-
-   # Health check
-   HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-     CMD curl -f http://localhost:3000/health || exit 1
-
-   # Start the application
-   CMD ["npm", "start"]
-   ```
-
-2. **Create .dockerignore:**
-   ```
-   node_modules
-   npm-debug.log
-   .git
-   .gitignore
-   README.md
-   .env
-   .env.local
-   coverage
-   .nyc_output
-   tests
-   ```
-
-3. **Build and run:**
+3. **Verify deployment**:
    ```bash
-   docker build -t mcp-memory-ts .
-   docker run -p 3000:3000 --env-file .env mcp-memory-ts
+   curl https://your-deployment.vercel.app/api/health
    ```
 
-## Claude Desktop Integration
+## 🔍 Monitoring & Debugging
 
-After deployment, configure Claude Desktop to use your deployed MCP server:
+### Vercel Dashboard
 
-1. **For local development:**
-   ```json
-   {
-     "mcpServers": {
-       "memory-ts": {
-         "command": "node",
-         "args": ["/path/to/mcp-memory-ts/dist/mcp/server.js"],
-         "env": {
-           "TURSO_URL": "your-database-url",
-           "TURSO_AUTH_TOKEN": "your-auth-token",
-           "OPENAI_API_KEY": "your-openai-key"
-         }
-       }
-     }
-   }
-   ```
+- View function logs in Vercel dashboard
+- Monitor performance and usage
+- Check environment variables
 
-2. **For deployed server (if supporting remote MCP):**
-   ```json
-   {
-     "mcpServers": {
-       "memory-ts": {
-         "command": "npx",
-         "args": ["@your-org/mcp-memory-client", "https://your-app.fly.dev"],
-         "env": {
-           "API_KEY": "your-api-key"
-         }
-       }
-     }
-   }
-   ```
+### Health Check
 
-## Monitoring and Maintenance
-
-### Health Checks
-
-The API server includes a health check endpoint at `/health`:
+Test your deployment:
 
 ```bash
-curl https://your-app.fly.dev/health
+curl https://your-deployment.vercel.app/api/health
 ```
 
-### Logging
+Expected response:
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-01-10T10:00:00.000Z",
+  "service": "mcp-memory-ts"
+}
+```
 
-Configure logging level via the `LOG_LEVEL` environment variable:
-- `debug`: Detailed debugging information
-- `info`: General information (default)
-- `warn`: Warning messages only
-- `error`: Error messages only
+### CORS Testing
 
-### Database Maintenance
+Test CORS with Python:
 
-1. **Backup your Turso database:**
-   ```bash
-   turso db dump mcp-memory-ts --output backup.sql
-   ```
+```python
+import requests
 
-2. **Monitor database size:**
-   ```bash
-   turso db inspect mcp-memory-ts
-   ```
+response = requests.get('https://your-deployment.vercel.app/api/health')
+print(response.headers)
+print(response.json())
+```
 
-3. **Update schema (if needed):**
-   ```bash
-   npm run init-db
-   ```
+## 🔧 Configuration Files
 
-### Performance Optimization
+### vercel.json
 
-1. **Enable database caching** by setting up a local replica:
-   ```bash
-   # In your environment
-   TURSO_SYNC_URL=libsql://your-database.turso.io
-   ```
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    }
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs18.x",
+      "maxDuration": 30
+    }
+  }
+}
+```
 
-2. **Optimize vector search** by adjusting batch sizes and thresholds:
-   ```bash
-   # Environment variables for tuning
-   EMBEDDING_BATCH_SIZE=50
-   VECTOR_SEARCH_THRESHOLD=0.7
-   ```
+### TypeScript Configuration
 
-3. **Monitor API performance** using the statistics endpoint:
-   ```bash
-   curl -H "Authorization: Bearer your-api-key" \
-        https://your-app.fly.dev/api/statistics
-   ```
+The project uses `tsconfig.vercel.json` for Vercel builds:
 
-## Security Considerations
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*", "api/**/*"]
+}
+```
 
-1. **API Key Management:**
-   - Use strong, randomly generated API keys
-   - Rotate keys regularly
-   - Store keys securely in environment variables
-
-2. **Database Security:**
-   - Use Turso's built-in authentication
-   - Regularly update auth tokens
-   - Monitor database access logs
-
-3. **Network Security:**
-   - Use HTTPS for all communications
-   - Implement rate limiting
-   - Consider IP whitelisting for sensitive deployments
-
-4. **Data Privacy:**
-   - Implement data retention policies
-   - Consider encryption for sensitive memories
-   - Comply with relevant privacy regulations
-
-## Troubleshooting
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-1. **Database connection errors:**
+1. **Environment Variables Not Set**:
    ```bash
-   # Check database status
-   turso db inspect mcp-memory-ts
-   
-   # Test connection
-   npm run init-db
+   vercel env ls
+   # Check if all required vars are present
    ```
 
-2. **OpenAI API errors:**
+2. **Build Failures**:
    ```bash
-   # Verify API key
-   curl -H "Authorization: Bearer $OPENAI_API_KEY" \
-        https://api.openai.com/v1/models
+   npm run type-check
+   npm run lint
+   # Fix TypeScript and linting errors
    ```
 
-3. **Memory/performance issues:**
-   ```bash
-   # Check application logs
-   fly logs -a mcp-memory-ts
-   
-   # Monitor resource usage
-   fly status -a mcp-memory-ts
-   ```
+3. **CORS Issues**:
+   - Check origin in CORS middleware
+   - Verify client headers
 
-### Support
+4. **Authentication Failures**:
+   - Verify Clerk keys
+   - Check webhook endpoint
+   - Test token validation
 
-For deployment issues:
-1. Check the application logs
-2. Verify environment variables
-3. Test database connectivity
-4. Review the troubleshooting section in README.md
-5. Open an issue on GitHub with deployment details
+### Logs and Debugging
+
+```bash
+# View Vercel function logs
+vercel logs
+
+# Check specific function
+vercel logs --follow api/index.ts
+```
+
+## 📊 Performance Optimization
+
+### Function Configuration
+
+- **Runtime**: Node.js 18.x
+- **Max Duration**: 30 seconds
+- **Memory**: Default (1024 MB)
+
+### Caching Strategy
+
+- Static responses cached for 24 hours
+- Database connections reused across invocations
+- Embedding cache for repeated queries
+
+## 🔒 Security Considerations
+
+1. **Environment Variables**:
+   - Use `--sensitive` flag for secrets
+   - Never commit actual values
+   - Rotate keys regularly
+
+2. **CORS Configuration**:
+   - Restrictive for web clients
+   - Permissive for Python clients
+   - Client type detection
+
+3. **Authentication**:
+   - Clerk JWT validation
+   - User isolation
+   - Rate limiting ready
+
+## 📈 Scaling Considerations
+
+1. **Database**:
+   - Turso handles scaling automatically
+   - Monitor connection limits
+
+2. **OpenAI API**:
+   - Implement rate limiting
+   - Use embedding cache
+
+3. **Vercel Functions**:
+   - Stateless design
+   - Connection pooling
+   - Efficient memory usage
+
+---
+
+For more information, see:
+- [Vercel Documentation](https://vercel.com/docs)
+- [Clerk Documentation](https://clerk.com/docs)
+- [Project README](./README.md)

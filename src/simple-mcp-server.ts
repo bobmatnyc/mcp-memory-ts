@@ -404,7 +404,7 @@ class SimpleMCPServer {
           break;
 
         case 'get_memory':
-          const getResult = await this.memoryCore.getMemory(parseInt(args.id));
+          const getResult = await this.memoryCore.getMemory(args.id);
 
           if (getResult.status === MCPToolResultStatus.SUCCESS && getResult.data) {
             const memory = getResult.data as any;
@@ -415,7 +415,7 @@ class SimpleMCPServer {
           break;
 
         case 'update_memory':
-          const updateResult = await this.memoryCore.updateMemory(parseInt(args.id), {
+          const updateResult = await this.memoryCore.updateMemory(args.id, {
             content: args.content,
             importance: args.importance ? (args.importance <= 0.3 ? ImportanceLevel.LOW : args.importance >= 0.7 ? ImportanceLevel.HIGH : ImportanceLevel.MEDIUM) : undefined,
           });
@@ -428,7 +428,7 @@ class SimpleMCPServer {
           break;
 
         case 'delete_memory':
-          const deleteResult = await this.memoryCore.deleteMemory(parseInt(args.id));
+          const deleteResult = await this.memoryCore.deleteMemory(args.id);
 
           if (deleteResult.status === MCPToolResultStatus.SUCCESS) {
             resultText = `✅ Memory ${args.id} deleted successfully!`;
