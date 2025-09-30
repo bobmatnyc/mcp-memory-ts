@@ -62,6 +62,11 @@ export class SchemaCompatibility {
       mapped.details = memory.content;
     }
 
+    // Preserve memory type with proper field name
+    if (memory.memoryType !== undefined) {
+      mapped.memory_type = memory.memoryType;
+    }
+
     // Generate UUID if not present (for Python compatibility)
     if (!mapped.uuid && !mapped.id) {
       mapped.uuid = this.generateUUID();
@@ -95,15 +100,28 @@ export class SchemaCompatibility {
    * Map memory fields from database to TypeScript model
    */
   static mapMemoryFromDatabase(row: Record<string, any>): Memory {
+    // Debug logging for critical fields
+    const debugEnabled = process.env.MCP_DEBUG === '1';
+    if (debugEnabled) {
+      console.error('[DEBUG] mapMemoryFromDatabase input:', {
+        id: row.id,
+        memory_type: row.memory_type,
+        importance: row.importance,
+        metadata: row.metadata,
+        created_at: row.created_at,
+      });
+    }
+
     const memory: any = {
       id: row.id,
       userId: row.user_id,
       // Use TypeScript fields, fallback to Python fields
       title: row.title || row.description || '',
       content: row.content || row.details || '',
-      memoryType: row.memory_type || row.memoryType || 'general',
-      importance: row.importance || 2,
-      isArchived: row.is_archived || !row.active || false,
+      // CRITICAL: Do not use fallback values - preserve exact database values
+      memoryType: row.memory_type || row.memoryType,
+      importance: row.importance,
+      isArchived: row.is_archived === 1 || row.is_archived === true || false,
       createdAt: row.created_at || row.createdAt,
       updatedAt: row.updated_at || row.updatedAt,
     };
@@ -128,18 +146,25 @@ export class SchemaCompatibility {
 
     if (row.embedding) {
       try {
-        memory.embedding = typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding;
+        const parsed = typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding;
+        // Ensure embedding is a proper array, not an empty array or null
+        memory.embedding = (Array.isArray(parsed) && parsed.length > 0) ? parsed : null;
       } catch {
         memory.embedding = null;
       }
+    } else {
+      memory.embedding = null;
     }
 
     if (row.metadata) {
       try {
-        memory.metadata = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
+        const parsed = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
+        memory.metadata = parsed || {};
       } catch {
         memory.metadata = {};
       }
+    } else {
+      memory.metadata = {};
     }
 
     return memory as Memory;

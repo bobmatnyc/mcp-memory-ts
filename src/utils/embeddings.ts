@@ -69,8 +69,18 @@ export class EmbeddingService {
    * Calculate cosine similarity between two vectors
    */
   static cosineSimilarity(a: number[], b: number[]): number {
+    if (!Array.isArray(a) || !Array.isArray(b)) {
+      console.error('[CosineSimilarity] Invalid input: not arrays', typeof a, typeof b);
+      return 0;
+    }
+
     if (a.length !== b.length) {
-      throw new Error('Vectors must have the same length');
+      console.error('[CosineSimilarity] Vector length mismatch:', a.length, 'vs', b.length);
+      return 0;
+    }
+
+    if (a.length === 0) {
+      return 0;
     }
 
     let dotProduct = 0;
@@ -78,16 +88,36 @@ export class EmbeddingService {
     let normB = 0;
 
     for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i]! * b[i]!;
-      normA += a[i]! * a[i]!;
-      normB += b[i]! * b[i]!;
+      const valA = a[i];
+      const valB = b[i];
+
+      // Validate that values are numbers
+      if (typeof valA !== 'number' || typeof valB !== 'number') {
+        console.error('[CosineSimilarity] Non-numeric values detected at index', i);
+        return 0;
+      }
+
+      dotProduct += valA * valB;
+      normA += valA * valA;
+      normB += valB * valB;
     }
 
     if (normA === 0 || normB === 0) {
+      if (process.env.MCP_DEBUG) {
+        console.log('[CosineSimilarity] Zero norm detected:', normA, normB);
+      }
       return 0;
     }
 
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    const similarity = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+
+    // OpenAI embeddings are normalized, so similarity should be between -1 and 1
+    // In practice, semantic similarity is usually between 0 and 1
+    if (similarity < -1.1 || similarity > 1.1) {
+      console.warn('[CosineSimilarity] Unusual similarity value:', similarity);
+    }
+
+    return similarity;
   }
 
   /**

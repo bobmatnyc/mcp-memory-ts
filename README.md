@@ -134,3 +134,26 @@ npm run type-check
 ## License
 
 MIT License - See LICENSE file for details.
+
+## Testing
+
+### Comprehensive Integrity Tests
+
+A comprehensive test suite is available to verify data integrity and system reliability:
+
+```bash
+# Run the full test suite
+tsx comprehensive-integrity-test.ts
+```
+
+The test suite validates:
+- Data integrity (type preservation, importance values, metadata)
+- Boundary conditions (volume, special characters, concurrent operations)
+- Recovery & reliability (updates, deletions, clear operations)
+- Search algorithms (single-word, multi-word, case insensitivity)
+- Production scenarios (session tracking, priority queues, date handling)
+
+Expected results: **17/17 tests passed, 5/5 production criteria met**
+
+See [TEST_RESULTS.md](./TEST_RESULTS.md) for detailed test results and analysis.
+

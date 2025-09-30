@@ -110,10 +110,10 @@ export class MemoryCore {
   async addMemory(
     title: string,
     content: string,
-    memoryType: MemoryType = MemoryType.MEMORY,
+    memoryType: MemoryType | string = MemoryType.MEMORY,
     options: {
       userId?: string;
-      importance?: ImportanceLevel;
+      importance?: ImportanceLevel | number;
       tags?: string[];
       entityIds?: number[];
       generateEmbedding?: boolean;
@@ -121,7 +121,7 @@ export class MemoryCore {
   ): Promise<MCPToolResult> {
     try {
       const userId = this.getUserId(options.userId);
-      
+
       // Generate embedding if requested
       let embedding: number[] | undefined;
       if (options.generateEmbedding !== false) {
@@ -129,7 +129,7 @@ export class MemoryCore {
           title,
           content,
           tags: options.tags,
-          memoryType,
+          memoryType: memoryType as any,
         });
         embedding = await this.embeddings.generateEmbedding(embeddingText);
       }
@@ -138,8 +138,8 @@ export class MemoryCore {
         userId,
         title,
         content,
-        memoryType,
-        importance: options.importance || ImportanceLevel.MEDIUM,
+        memoryType: memoryType as any,
+        importance: options.importance !== undefined ? options.importance as any : 0.5,
         tags: options.tags,
         entityIds: options.entityIds,
         embedding,
@@ -257,7 +257,7 @@ export class MemoryCore {
     updates: {
       title?: string;
       content?: string;
-      importance?: ImportanceLevel;
+      importance?: ImportanceLevel | number;
       tags?: string[];
     },
     options: { userId?: string } = {}
@@ -368,16 +368,27 @@ export class MemoryCore {
   ): Promise<Memory[]> {
     // Get all memories with embeddings for the user
     const memories = await this.dbOps.getMemoriesByUserId(userId, 1000);
-    
+
     // Filter by memory types if specified
     const filteredMemories = options.memoryTypes
       ? memories.filter(m => options.memoryTypes!.includes(m.memoryType))
       : memories;
 
-    // Find similar memories
+    // Find similar memories - ensure embeddings are valid arrays
     const vectorData = filteredMemories
-      .filter(m => m.embedding && m.embedding.length > 0)
+      .filter(m => {
+        // Strict validation: must be array with proper length (1536 for text-embedding-3-small)
+        return Array.isArray(m.embedding) && m.embedding.length > 0 &&
+               typeof m.embedding[0] === 'number';
+      })
       .map(m => ({ vector: m.embedding!, data: m }));
+
+    // Debug logging for development
+    if (process.env.MCP_DEBUG) {
+      console.log(`[VectorSearch] Query embedding dimensions: ${queryEmbedding.length}`);
+      console.log(`[VectorSearch] Valid memory embeddings: ${vectorData.length}/${filteredMemories.length}`);
+      console.log(`[VectorSearch] Threshold: ${options.threshold || 0.7}`);
+    }
 
     const similarities = EmbeddingService.findMostSimilar(
       queryEmbedding,
@@ -385,6 +396,12 @@ export class MemoryCore {
       options.threshold || 0.7,
       options.limit || 10
     );
+
+    // Debug logging for results
+    if (process.env.MCP_DEBUG && similarities.length > 0) {
+      console.log(`[VectorSearch] Found ${similarities.length} results with similarities:`,
+        similarities.map(s => s.similarity.toFixed(4)));
+    }
 
     return similarities.map(s => s.data);
   }

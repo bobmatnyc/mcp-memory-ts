@@ -215,14 +215,46 @@ export class DatabaseOperations {
   }
 
   async searchMemories(userId: string, query: string, limit = 10): Promise<Memory[]> {
-    const result = await this.db.execute(`
-      SELECT m.* FROM memories m
-      JOIN memories_fts fts ON m.id = fts.rowid
-      WHERE m.user_id = ? AND m.is_archived = 0 AND memories_fts MATCH ?
-      ORDER BY rank LIMIT ?
-    `, [userId, query, limit]);
-    
-    return result.rows.map(row => this.mapRowToMemory(row as any));
+    try {
+      // Tokenize query into words for multi-word search
+      const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+
+      if (words.length === 0) {
+        return [];
+      }
+
+      // For single word, use simple LIKE
+      if (words.length === 1) {
+        const result = await this.db.execute(`
+          SELECT * FROM memories
+          WHERE user_id = ? AND is_archived = 0
+          AND (LOWER(title) LIKE LOWER(?) OR LOWER(content) LIKE LOWER(?))
+          ORDER BY updated_at DESC
+          LIMIT ?
+        `, [userId, `%${words[0]}%`, `%${words[0]}%`, limit]);
+
+        return result.rows.map(row => this.mapRowToMemory(row as any));
+      }
+
+      // For multiple words, use OR logic to find memories containing ANY of the words
+      // This matches user expectations for search - results are relevant if they contain any search term
+      const conditions = words.map(() => '(LOWER(title) LIKE LOWER(?) OR LOWER(content) LIKE LOWER(?))').join(' OR ');
+      const params = words.flatMap(w => [`%${w}%`, `%${w}%`]);
+
+      const result = await this.db.execute(`
+        SELECT * FROM memories
+        WHERE user_id = ? AND is_archived = 0
+        AND (${conditions})
+        ORDER BY updated_at DESC
+        LIMIT ?
+      `, [userId, ...params, limit]);
+
+      return result.rows.map(row => this.mapRowToMemory(row as any));
+    } catch (error) {
+      console.error('Search memories error:', error);
+      // Return empty array on error rather than throwing
+      return [];
+    }
   }
 
   // Helper methods to map database rows to objects

@@ -354,29 +354,26 @@ class SimpleMCPServer {
     try {
       switch (name) {
         case 'store_memory':
-          // Map memory type from string to enum
-          let memoryType = MemoryType.MEMORY;
-          if (args.type === 'interaction') memoryType = MemoryType.INTERACTION;
+          // Use the actual type string without mapping to enums
+          const inputType = args.type || 'semantic';
 
-          // Map importance from 0-1 to enum
-          let importance = ImportanceLevel.MEDIUM;
-          if (args.importance <= 0.3) importance = ImportanceLevel.LOW;
-          else if (args.importance >= 0.7) importance = ImportanceLevel.HIGH;
+          // Keep importance as decimal (0-1) without conversion
+          const importanceValue = args.importance !== undefined ? args.importance : 0.5;
 
           const addResult = await this.memoryCore.addMemory(
             args.metadata?.title || 'Memory',
             args.content,
-            memoryType,
+            inputType as any, // Pass the actual type string
             {
               tags: args.metadata?.tags,
-              importance,
+              importance: importanceValue as any, // Pass decimal importance directly
               generateEmbedding: true,
             }
           );
 
           if (addResult.status === MCPToolResultStatus.SUCCESS) {
             const memoryData = addResult.data as any;
-            resultText = `✅ Memory stored successfully!\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nType: ${args.type || 'semantic'}\nImportance: ${args.importance || 0.5}`;
+            resultText = `✅ Memory stored successfully!\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nType: ${inputType}\nImportance: ${importanceValue}`;
           } else {
             resultText = `❌ Failed to store memory: ${addResult.error || addResult.message}`;
           }
@@ -408,16 +405,17 @@ class SimpleMCPServer {
 
           if (getResult.status === MCPToolResultStatus.SUCCESS && getResult.data) {
             const memory = getResult.data as any;
-            resultText = `📄 Memory Details:\n\nID: ${memory.id}\nContent: ${memory.content}\nType: ${memory.memoryType || 'semantic'}\nImportance: ${memory.importance || 'medium'}\nCreated: ${new Date(memory.createdAt).toLocaleString()}\nTags: ${memory.tags || 'none'}`;
+            resultText = `📄 Memory Details:\n\nID: ${memory.id}\nContent: ${memory.content}\nType: ${memory.memoryType || 'semantic'}\nImportance: ${memory.importance !== undefined ? memory.importance : 0.5}\nCreated: ${new Date(memory.createdAt).toLocaleString()}\nTags: ${memory.tags || 'none'}`;
           } else {
             resultText = `❌ Memory not found: ${getResult.error || getResult.message}`;
           }
           break;
 
         case 'update_memory':
+          // Keep importance as decimal (0-1) without conversion
           const updateResult = await this.memoryCore.updateMemory(args.id, {
             content: args.content,
-            importance: args.importance ? (args.importance <= 0.3 ? ImportanceLevel.LOW : args.importance >= 0.7 ? ImportanceLevel.HIGH : ImportanceLevel.MEDIUM) : undefined,
+            importance: args.importance as any, // Pass decimal importance directly
           });
 
           if (updateResult.status === MCPToolResultStatus.SUCCESS) {
@@ -447,7 +445,12 @@ class SimpleMCPServer {
 
           if (statsResult.status === MCPToolResultStatus.SUCCESS && statsResult.data) {
             const stats = statsResult.data as any;
-            resultText = `📊 Memory Statistics:\n\n• Total Memories: ${stats.totalMemories}\n• Total Entities: ${stats.totalEntities}\n• Memories by Type:\n  - Semantic: ${stats.memoryTypes?.memory || 0}\n  - Episodic: ${stats.memoryTypes?.interaction || 0}\n  - Other: ${stats.memoryTypes?.technical || 0}\n• Vector Embeddings: ${stats.embeddedMemories}/${stats.totalMemories} (${Math.round((stats.embeddedMemories / Math.max(stats.totalMemories, 1)) * 100)}%)`;
+            const memoryTypeBreakdown = stats.memoriesByType || {};
+            const typeLines = Object.entries(memoryTypeBreakdown)
+              .map(([type, count]) => `  - ${type}: ${count}`)
+              .join('\n');
+
+            resultText = `📊 Memory Statistics:\n\n• Total Memories: ${stats.totalMemories}\n• Total Entities: ${stats.totalEntities}\n• Memories by Type:\n${typeLines || '  - None'}\n• Vector Embeddings: ${stats.memoriesWithEmbeddings || 0}/${stats.totalMemories} (${Math.round(((stats.memoriesWithEmbeddings || 0) / Math.max(stats.totalMemories, 1)) * 100)}%)`;
           } else {
             resultText = `❌ Failed to get statistics: ${statsResult.error || statsResult.message}`;
           }

@@ -67,10 +67,14 @@ describe('VectorSearchEngine', () => {
 
     it('should filter by threshold', () => {
       const queryVector = [1, 0, 0];
+      // item1 [1,0,0] has similarity 1.0
+      // item3 [0.9,0.1,0] has similarity 0.9/sqrt(0.82) ≈ 0.9939
+      // Both should pass threshold 0.95
       const results = engine.searchSimilar(queryVector, { threshold: 0.95 });
 
-      expect(results).toHaveLength(1);
+      expect(results).toHaveLength(2);
       expect(results[0]?.item.name).toBe('item1');
+      expect(results[1]?.item.name).toBe('item3');
     });
 
     it('should include distance when requested', () => {

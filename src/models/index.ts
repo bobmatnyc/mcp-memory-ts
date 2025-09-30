@@ -69,7 +69,7 @@ export function createMemory(data: Partial<Memory>): Omit<Memory, 'id'> {
     title: data.title || '',
     content: data.content || '',
     memoryType: data.memoryType!,
-    importance: data.importance || 2,
+    importance: data.importance !== undefined ? data.importance as any : 0.5,
     tags: data.tags,
     entityIds: data.entityIds,
     embedding: data.embedding,
@@ -137,10 +137,10 @@ export function parseMetadata(metadata?: string | Record<string, unknown>): Reco
  * Stringify metadata safely
  */
 export function stringifyMetadata(metadata?: Record<string, unknown>): string {
-  if (!metadata || Object.keys(metadata).length === 0) return '';
+  if (!metadata) return '{}';
   try {
     return JSON.stringify(metadata);
   } catch {
-    return '';
+    return '{}';
   }
 }
