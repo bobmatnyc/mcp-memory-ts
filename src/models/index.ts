@@ -64,6 +64,15 @@ export function createEntity(data: Partial<Entity>): Omit<Entity, 'id'> {
  */
 export function createMemory(data: Partial<Memory>): Omit<Memory, 'id'> {
   const now = new Date().toISOString();
+
+  // Validate importance if provided
+  if (data.importance !== undefined) {
+    const importance = typeof data.importance === 'number' ? data.importance : data.importance;
+    if (importance < 0.0 || importance > 1.0) {
+      throw new Error('Importance must be between 0.0 and 1.0');
+    }
+  }
+
   return {
     userId: data.userId,
     title: data.title || '',

@@ -125,6 +125,18 @@ export class MemoryCore {
     try {
       const userId = this.getUserId(options.userId);
 
+      // Validate importance if provided
+      if (options.importance !== undefined) {
+        const importance = typeof options.importance === 'number' ? options.importance : options.importance;
+        if (importance < 0.0 || importance > 1.0) {
+          return {
+            status: MCPToolResultStatus.ERROR,
+            message: 'Failed to add memory',
+            error: 'Importance must be between 0.0 and 1.0',
+          };
+        }
+      }
+
       // Generate embedding if requested
       let embedding: number[] | undefined;
       if (options.generateEmbedding !== false) {
@@ -173,6 +185,50 @@ export class MemoryCore {
       const userId = this.getUserId(options.userId);
       const limit = options.limit || 10;
 
+      // Check for metadata search syntax: "metadata.field:value" or "field:value"
+      const metadataMatch = query.match(/^(?:metadata\.)?(\w+):(.+)$/);
+
+      if (metadataMatch) {
+        // Metadata field search
+        const [, field, value] = metadataMatch;
+        const trimmedValue = value.trim();
+
+        try {
+          // Use json_extract to search within JSON metadata field
+          const sql = `
+            SELECT * FROM memories
+            WHERE user_id = ? AND is_archived = 0
+            AND json_extract(metadata, ?) = ?
+            ORDER BY updated_at DESC
+            LIMIT ?
+          `;
+
+          const result = await this.db.execute(sql, [
+            userId,
+            `$.${field}`,
+            trimmedValue,
+            limit
+          ]);
+
+          const metadataResults = result.rows.map(row =>
+            SchemaCompatibility.mapMemoryFromDatabase(row as any)
+          );
+
+          return {
+            status: MCPToolResultStatus.SUCCESS,
+            message: `Found ${metadataResults.length} memories with metadata.${field}=${trimmedValue}`,
+            data: metadataResults,
+          };
+        } catch (error) {
+          return {
+            status: MCPToolResultStatus.ERROR,
+            message: 'Failed to search metadata',
+            error: String(error),
+          };
+        }
+      }
+
+      // Regular search (non-metadata)
       // First try vector search if we have embeddings
       let vectorResults: Memory[] = [];
       if (query.trim()) {
@@ -275,6 +331,18 @@ export class MemoryCore {
   ): Promise<MCPToolResult> {
     try {
       const userId = this.getUserId(options.userId);
+
+      // Validate importance if provided
+      if (updates.importance !== undefined) {
+        const importance = typeof updates.importance === 'number' ? updates.importance : updates.importance;
+        if (importance < 0.0 || importance > 1.0) {
+          return {
+            status: MCPToolResultStatus.ERROR,
+            message: 'Failed to update memory',
+            error: 'Importance must be between 0.0 and 1.0',
+          };
+        }
+      }
 
       // First check if memory exists and belongs to user
       const existingResult = await this.getMemory(memoryId, { userId });
