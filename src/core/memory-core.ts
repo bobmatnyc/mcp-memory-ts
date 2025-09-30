@@ -4,6 +4,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseConnection, DatabaseOperations, initializeSchema } from '../database/index.js';
+import { SchemaCompatibility } from '../database/compatibility.js';
 import { EmbeddingService } from '../utils/embeddings.js';
 import type {
   User,
@@ -238,10 +239,13 @@ export class MemoryCore {
         };
       }
 
+      // Transform snake_case database fields to camelCase
+      const transformedMemory = SchemaCompatibility.mapMemoryFromDatabase(result.rows[0] as any);
+
       return {
         status: MCPToolResultStatus.SUCCESS,
         message: 'Memory retrieved successfully',
-        data: result.rows[0],
+        data: transformedMemory,
       };
     } catch (error) {
       return {
