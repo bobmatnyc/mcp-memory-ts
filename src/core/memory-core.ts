@@ -326,6 +326,7 @@ export class MemoryCore {
       content?: string;
       importance?: ImportanceLevel | number;
       tags?: string[];
+      metadata?: Record<string, unknown>;
     },
     options: { userId?: string } = {}
   ): Promise<MCPToolResult> {
@@ -371,6 +372,11 @@ export class MemoryCore {
       if (updates.tags !== undefined) {
         updateFields.push('tags = ?');
         updateValues.push(updates.tags.join(','));
+      }
+
+      if (updates.metadata !== undefined) {
+        updateFields.push('metadata = ?');
+        updateValues.push(JSON.stringify(updates.metadata));
       }
 
       if (updateFields.length === 0) {

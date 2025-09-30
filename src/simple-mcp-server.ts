@@ -287,12 +287,18 @@ class SimpleMCPServer {
           type: 'object',
           properties: {
             id: { type: 'string', description: 'Memory item ID to update' },
+            title: { type: 'string', description: 'Updated title' },
             content: { type: 'string', description: 'Updated content' },
             importance: {
               type: 'number',
               minimum: 0,
               maximum: 1,
               description: 'Updated importance score'
+            },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Updated tags'
             },
             metadata: { type: 'object', description: 'Updated metadata' },
           },
@@ -429,11 +435,15 @@ class SimpleMCPServer {
           break;
 
         case 'update_memory':
-          // Keep importance as decimal (0-1) without conversion
-          const updateResult = await this.memoryCore.updateMemory(args.id, {
-            content: args.content,
-            importance: args.importance as any, // Pass decimal importance directly
-          });
+          // Build updates object with only provided fields
+          const updates: any = {};
+          if (args.content !== undefined) updates.content = args.content;
+          if (args.title !== undefined) updates.title = args.title;
+          if (args.importance !== undefined) updates.importance = args.importance;
+          if (args.tags !== undefined) updates.tags = args.tags;
+          if (args.metadata !== undefined) updates.metadata = args.metadata;
+
+          const updateResult = await this.memoryCore.updateMemory(args.id, updates);
 
           if (updateResult.status === MCPToolResultStatus.SUCCESS) {
             resultText = `✅ Memory ${args.id} updated successfully!`;
