@@ -311,20 +311,6 @@ class SimpleMCPServer {
         },
       },
       {
-        name: 'clear_memories',
-        description: 'Clear all memories or memories of a specific type',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            type: {
-              type: 'string',
-              enum: ['episodic', 'semantic', 'procedural', 'working', 'sensory'],
-              description: 'Type of memories to clear (omit to clear all)'
-            },
-          },
-        },
-      },
-      {
         name: 'get_memory_stats',
         description: 'Get statistics about stored memories',
         inputSchema: {
@@ -466,10 +452,6 @@ class SimpleMCPServer {
           }
           break;
 
-        case 'clear_memories':
-          // For now, we'll just return a message since this is a dangerous operation
-          resultText = `⚠️ Clear memories operation not implemented for safety. Use delete_memory for individual deletions.`;
-          break;
 
         case 'get_memory_stats':
           const statsResult = await this.memoryCore.getStatistics();

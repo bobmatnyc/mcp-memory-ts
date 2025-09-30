@@ -366,68 +366,126 @@ export class MemoryCore {
   }
 
   /**
-   * Sort memories by strategy
+   * Calculate temporal decay factor for a memory
+   * Uses a logarithmic decay function that never reaches zero
+   */
+  private calculateTemporalDecay(createdAt: string | undefined): number {
+    if (!createdAt) return 0.5; // Default for missing dates
+
+    const now = Date.now();
+    const memoryTime = new Date(createdAt).getTime();
+    const ageInDays = (now - memoryTime) / (24 * 60 * 60 * 1000);
+
+    // Logarithmic decay: starts at 1.0, approaches but never reaches 0
+    // Half-life of ~30 days (0.5 decay after one month)
+    // After 1 year: ~0.2, After 2 years: ~0.15
+    const decay = 1 / (1 + Math.log10(1 + ageInDays / 30));
+
+    return Math.max(0.1, decay); // Never go below 0.1
+  }
+
+  /**
+   * Sort memories by strategy with temporal decay and semantic linking
    */
   private sortByStrategy(memories: Memory[], strategy: SearchStrategy): void {
+    // Apply temporal decay to all memories first
+    const memoriesWithDecay = memories.map(memory => ({
+      memory,
+      temporalDecay: this.calculateTemporalDecay(memory.createdAt),
+      semanticBoost: 0, // Will be calculated if memories are linked
+    }));
+
+    // Detect semantic links between memories (similar content or tags)
+    // Boost newer memories that are semantically linked to older important memories
+    for (let i = 0; i < memoriesWithDecay.length; i++) {
+      for (let j = i + 1; j < memoriesWithDecay.length; j++) {
+        const memA = memoriesWithDecay[i];
+        const memB = memoriesWithDecay[j];
+
+        // Check for tag overlap
+        const tagsA = memA.memory.tags || [];
+        const tagsB = memB.memory.tags || [];
+        const sharedTags = tagsA.filter(tag => tagsB.includes(tag));
+
+        if (sharedTags.length > 0) {
+          // Boost the newer memory based on the older memory's importance
+          const newer = memA.temporalDecay > memB.temporalDecay ? memA : memB;
+          const older = memA.temporalDecay > memB.temporalDecay ? memB : memA;
+
+          const olderImportance = typeof older.memory.importance === 'number'
+            ? older.memory.importance : 0.5;
+
+          // Semantic boost: newer linked memories get a boost from important older memories
+          newer.semanticBoost = Math.max(
+            newer.semanticBoost,
+            olderImportance * 0.3 * sharedTags.length / Math.max(tagsA.length, tagsB.length)
+          );
+        }
+      }
+    }
+
     switch (strategy) {
       case 'recency':
-        // Sort by most recent first
-        memories.sort((a, b) => {
-          const dateA = new Date(a.updatedAt || a.createdAt || Date.now()).getTime();
-          const dateB = new Date(b.updatedAt || b.createdAt || Date.now()).getTime();
-          return dateB - dateA;
-        });
+        // Sort by temporal decay (recent memories have higher decay values)
+        memoriesWithDecay.sort((a, b) => b.temporalDecay - a.temporalDecay);
         break;
 
       case 'frequency':
-        // Sort by access count (using importance as a proxy for frequency)
-        // In a real implementation, you'd track actual access counts
-        memories.sort((a, b) => {
-          const freqA = typeof a.importance === 'number' ? a.importance : 0.5;
-          const freqB = typeof b.importance === 'number' ? b.importance : 0.5;
+        // Sort by importance with temporal decay factor
+        memoriesWithDecay.sort((a, b) => {
+          const freqA = (typeof a.memory.importance === 'number' ? a.memory.importance : 0.5) * a.temporalDecay;
+          const freqB = (typeof b.memory.importance === 'number' ? b.memory.importance : 0.5) * b.temporalDecay;
           return freqB - freqA;
         });
         break;
 
       case 'importance':
-        // Sort by importance level
-        memories.sort((a, b) => {
-          const impA = typeof a.importance === 'number' ? a.importance : 0.5;
-          const impB = typeof b.importance === 'number' ? b.importance : 0.5;
-          return impB - impA;
+        // Sort by importance with slight temporal decay influence
+        memoriesWithDecay.sort((a, b) => {
+          const impA = typeof a.memory.importance === 'number' ? a.memory.importance : 0.5;
+          const impB = typeof b.memory.importance === 'number' ? b.memory.importance : 0.5;
+          // 80% importance, 20% temporal decay
+          const scoreA = impA * 0.8 + a.temporalDecay * 0.2;
+          const scoreB = impB * 0.8 + b.temporalDecay * 0.2;
+          return scoreB - scoreA;
         });
         break;
 
       case 'similarity':
-        // Already sorted by similarity from vector search
-        // No additional sorting needed
+        // Apply temporal decay to similarity scores
+        // Memories are already sorted by similarity, just apply decay
+        memoriesWithDecay.sort((a, b) => {
+          // Maintain original order but boost by temporal decay
+          const indexA = memories.indexOf(a.memory);
+          const indexB = memories.indexOf(b.memory);
+          const simScoreA = (1 - indexA / memories.length) * a.temporalDecay;
+          const simScoreB = (1 - indexB / memories.length) * b.temporalDecay;
+          return simScoreB - simScoreA;
+        });
         break;
 
       case 'composite':
       default:
-        // Composite score: balance recency, importance, and position in results
-        memories.sort((a, b) => {
-          const dateA = new Date(a.updatedAt || a.createdAt || Date.now()).getTime();
-          const dateB = new Date(b.updatedAt || b.createdAt || Date.now()).getTime();
-          const now = Date.now();
-          const ageA = now - dateA;
-          const ageB = now - dateB;
+        // Composite score with temporal decay and semantic linking
+        memoriesWithDecay.sort((a, b) => {
+          const impA = typeof a.memory.importance === 'number' ? a.memory.importance : 0.5;
+          const impB = typeof b.memory.importance === 'number' ? b.memory.importance : 0.5;
 
-          // Normalize age (newer = higher score, max 1 week old for full score)
-          const recencyScoreA = Math.max(0, 1 - ageA / (7 * 24 * 60 * 60 * 1000));
-          const recencyScoreB = Math.max(0, 1 - ageB / (7 * 24 * 60 * 60 * 1000));
-
-          const impA = typeof a.importance === 'number' ? a.importance : 0.5;
-          const impB = typeof b.importance === 'number' ? b.importance : 0.5;
-
-          // Composite score: 40% recency, 60% importance
-          const scoreA = recencyScoreA * 0.4 + impA * 0.6;
-          const scoreB = recencyScoreB * 0.4 + impB * 0.6;
+          // Composite score:
+          // - 30% temporal decay
+          // - 40% importance
+          // - 30% semantic boost (favors newer linked memories)
+          const scoreA = a.temporalDecay * 0.3 + impA * 0.4 + a.semanticBoost * 0.3;
+          const scoreB = b.temporalDecay * 0.3 + impB * 0.4 + b.semanticBoost * 0.3;
 
           return scoreB - scoreA;
         });
         break;
     }
+
+    // Replace original array contents with sorted results
+    memories.length = 0;
+    memories.push(...memoriesWithDecay.map(item => item.memory));
   }
 
   /**
