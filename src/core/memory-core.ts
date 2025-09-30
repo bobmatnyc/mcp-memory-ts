@@ -13,6 +13,7 @@ import type {
   Interaction,
   SearchResult,
   VectorSearchOptions,
+  SearchStrategy,
   MCPToolResult,
 } from '../types/base.js';
 import {
@@ -117,6 +118,7 @@ export class MemoryCore {
       importance?: ImportanceLevel | number;
       tags?: string[];
       entityIds?: number[];
+      metadata?: Record<string, unknown>;
       generateEmbedding?: boolean;
     } = {}
   ): Promise<MCPToolResult> {
@@ -143,6 +145,7 @@ export class MemoryCore {
         importance: options.importance !== undefined ? options.importance as any : 0.5,
         tags: options.tags,
         entityIds: options.entityIds,
+        metadata: options.metadata,
         embedding,
       });
 
@@ -198,12 +201,16 @@ export class MemoryCore {
       // Combine and deduplicate results
       const allResults = [...vectorResults];
       const existingIds = new Set(vectorResults.map(m => m.id));
-      
+
       for (const result of textResults) {
         if (!existingIds.has(result.id)) {
           allResults.push(result);
         }
       }
+
+      // Apply search strategy sorting
+      const strategy = options.strategy || 'composite';
+      this.sortByStrategy(allResults, strategy);
 
       return {
         status: MCPToolResultStatus.SUCCESS,
@@ -355,6 +362,71 @@ export class MemoryCore {
         message: 'Failed to delete memory',
         error: String(error),
       };
+    }
+  }
+
+  /**
+   * Sort memories by strategy
+   */
+  private sortByStrategy(memories: Memory[], strategy: SearchStrategy): void {
+    switch (strategy) {
+      case 'recency':
+        // Sort by most recent first
+        memories.sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.createdAt || Date.now()).getTime();
+          const dateB = new Date(b.updatedAt || b.createdAt || Date.now()).getTime();
+          return dateB - dateA;
+        });
+        break;
+
+      case 'frequency':
+        // Sort by access count (using importance as a proxy for frequency)
+        // In a real implementation, you'd track actual access counts
+        memories.sort((a, b) => {
+          const freqA = typeof a.importance === 'number' ? a.importance : 0.5;
+          const freqB = typeof b.importance === 'number' ? b.importance : 0.5;
+          return freqB - freqA;
+        });
+        break;
+
+      case 'importance':
+        // Sort by importance level
+        memories.sort((a, b) => {
+          const impA = typeof a.importance === 'number' ? a.importance : 0.5;
+          const impB = typeof b.importance === 'number' ? b.importance : 0.5;
+          return impB - impA;
+        });
+        break;
+
+      case 'similarity':
+        // Already sorted by similarity from vector search
+        // No additional sorting needed
+        break;
+
+      case 'composite':
+      default:
+        // Composite score: balance recency, importance, and position in results
+        memories.sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.createdAt || Date.now()).getTime();
+          const dateB = new Date(b.updatedAt || b.createdAt || Date.now()).getTime();
+          const now = Date.now();
+          const ageA = now - dateA;
+          const ageB = now - dateB;
+
+          // Normalize age (newer = higher score, max 1 week old for full score)
+          const recencyScoreA = Math.max(0, 1 - ageA / (7 * 24 * 60 * 60 * 1000));
+          const recencyScoreB = Math.max(0, 1 - ageB / (7 * 24 * 60 * 60 * 1000));
+
+          const impA = typeof a.importance === 'number' ? a.importance : 0.5;
+          const impB = typeof b.importance === 'number' ? b.importance : 0.5;
+
+          // Composite score: 40% recency, 60% importance
+          const scoreA = recencyScoreA * 0.4 + impA * 0.6;
+          const scoreB = recencyScoreB * 0.4 + impB * 0.6;
+
+          return scoreB - scoreA;
+        });
+        break;
     }
   }
 

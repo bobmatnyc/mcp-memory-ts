@@ -360,13 +360,29 @@ class SimpleMCPServer {
           // Keep importance as decimal (0-1) without conversion
           const importanceValue = args.importance !== undefined ? args.importance : 0.5;
 
+          // Extract title from metadata or args
+          const title = args.title || args.metadata?.title || 'Memory';
+
+          // Extract tags from args or metadata
+          const tags = args.tags || args.metadata?.tags || [];
+
+          // Prepare metadata object, excluding title and tags which are handled separately
+          let metadataToStore: Record<string, unknown> | undefined;
+          if (args.metadata && typeof args.metadata === 'object') {
+            const { title: _title, tags: _tags, ...remainingMetadata } = args.metadata;
+            if (Object.keys(remainingMetadata).length > 0) {
+              metadataToStore = remainingMetadata;
+            }
+          }
+
           const addResult = await this.memoryCore.addMemory(
-            args.metadata?.title || 'Memory',
+            title,
             args.content,
             inputType as any, // Pass the actual type string
             {
-              tags: args.metadata?.tags,
+              tags: Array.isArray(tags) ? tags : [tags],
               importance: importanceValue as any, // Pass decimal importance directly
+              metadata: metadataToStore,
               generateEmbedding: true,
             }
           );
@@ -383,6 +399,7 @@ class SimpleMCPServer {
           const searchResult = await this.memoryCore.searchMemories(args.query, {
             limit: args.limit || 10,
             threshold: args.threshold || 0.3,
+            strategy: args.strategy || 'composite',
           });
 
           if (searchResult.status === MCPToolResultStatus.SUCCESS && searchResult.data) {
@@ -392,7 +409,14 @@ class SimpleMCPServer {
             } else {
               resultText = `🔍 Found ${memories.length} memories for "${args.query}":\n\n`;
               memories.forEach((memory, index) => {
-                resultText += `${index + 1}. Memory ID: ${memory.id}\n   Content: ${memory.content.substring(0, 150)}${memory.content.length > 150 ? '...' : ''}\n   Type: ${memory.memoryType || 'semantic'}\n   Created: ${new Date(memory.createdAt).toLocaleDateString()}\n\n`;
+                const tagsDisplay = Array.isArray(memory.tags) && memory.tags.length > 0
+                  ? memory.tags.join(', ')
+                  : 'none';
+                const metadataDisplay = memory.metadata && Object.keys(memory.metadata).length > 0
+                  ? JSON.stringify(memory.metadata, null, 2)
+                  : 'none';
+
+                resultText += `${index + 1}. Memory ID: ${memory.id}\n   Content: ${memory.content.substring(0, 150)}${memory.content.length > 150 ? '...' : ''}\n   Type: ${memory.memoryType || 'semantic'}\n   Importance: ${memory.importance !== undefined ? memory.importance : 0.5}\n   Tags: ${tagsDisplay}\n   Metadata: ${metadataDisplay}\n   Created: ${new Date(memory.createdAt).toLocaleDateString()}\n\n`;
               });
             }
           } else {
@@ -405,7 +429,14 @@ class SimpleMCPServer {
 
           if (getResult.status === MCPToolResultStatus.SUCCESS && getResult.data) {
             const memory = getResult.data as any;
-            resultText = `📄 Memory Details:\n\nID: ${memory.id}\nContent: ${memory.content}\nType: ${memory.memoryType || 'semantic'}\nImportance: ${memory.importance !== undefined ? memory.importance : 0.5}\nCreated: ${new Date(memory.createdAt).toLocaleString()}\nTags: ${memory.tags || 'none'}`;
+            const tagsDisplay = Array.isArray(memory.tags) && memory.tags.length > 0
+              ? memory.tags.join(', ')
+              : 'none';
+            const metadataDisplay = memory.metadata && Object.keys(memory.metadata).length > 0
+              ? JSON.stringify(memory.metadata, null, 2)
+              : 'none';
+
+            resultText = `📄 Memory Details:\n\nID: ${memory.id}\nContent: ${memory.content}\nType: ${memory.memoryType || 'semantic'}\nImportance: ${memory.importance !== undefined ? memory.importance : 0.5}\nCreated: ${new Date(memory.createdAt).toLocaleString()}\nTags: ${tagsDisplay}\nMetadata: ${metadataDisplay}`;
           } else {
             resultText = `❌ Memory not found: ${getResult.error || getResult.message}`;
           }

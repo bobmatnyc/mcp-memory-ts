@@ -112,11 +112,15 @@ export interface SearchResult<T = unknown> {
   type: 'memory' | 'entity' | 'interaction';
 }
 
+// Search strategy types
+export type SearchStrategy = 'recency' | 'frequency' | 'importance' | 'similarity' | 'composite';
+
 // Vector search options
 export interface VectorSearchOptions {
   query?: string;
   limit?: number;
   threshold?: number;
+  strategy?: SearchStrategy;
   includeEmbedding?: boolean;
   memoryTypes?: MemoryType[];
   entityTypes?: EntityType[];
