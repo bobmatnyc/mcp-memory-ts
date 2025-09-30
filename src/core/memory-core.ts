@@ -371,7 +371,8 @@ export class MemoryCore {
 
       if (updates.tags !== undefined) {
         updateFields.push('tags = ?');
-        updateValues.push(updates.tags.join(','));
+        // Store tags as JSON array to match database format
+        updateValues.push(JSON.stringify(updates.tags));
       }
 
       if (updates.metadata !== undefined) {
