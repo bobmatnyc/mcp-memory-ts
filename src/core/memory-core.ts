@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DatabaseConnection, DatabaseOperations, initializeSchema } from '../database/index.js';
 import { SchemaCompatibility } from '../database/compatibility.js';
 import { EmbeddingService } from '../utils/embeddings.js';
+import { EmbeddingUpdater, createEmbeddingUpdater } from '../services/embedding-updater.js';
 import type {
   User,
   Entity,
@@ -29,12 +30,25 @@ export class MemoryCore {
   protected db: DatabaseConnection;
   protected dbOps: DatabaseOperations;
   protected embeddings: EmbeddingService;
+  protected embeddingUpdater: EmbeddingUpdater | null = null;
   protected defaultUserId: string | null = null;
+  protected autoUpdateEmbeddings: boolean = true;
 
-  constructor(db: DatabaseConnection, openaiApiKey?: string) {
+  constructor(db: DatabaseConnection, openaiApiKey?: string, options: { autoUpdateEmbeddings?: boolean } = {}) {
     this.db = db;
     this.dbOps = new DatabaseOperations(db);
     this.embeddings = new EmbeddingService(openaiApiKey);
+    this.autoUpdateEmbeddings = options.autoUpdateEmbeddings !== false;
+
+    // Create embedding updater if API key is available and auto-update is enabled
+    const apiKey = openaiApiKey || process.env.OPENAI_API_KEY;
+    if (apiKey && this.autoUpdateEmbeddings) {
+      this.embeddingUpdater = createEmbeddingUpdater(db, apiKey, {
+        batchSize: 10,
+        retryAttempts: 3,
+        retryDelay: 1000,
+      });
+    }
   }
 
   /**
@@ -44,11 +58,17 @@ export class MemoryCore {
     await this.db.connect();
     // Skip schema initialization for existing database
     // await initializeSchema(this.db);
-    
+
     // Set up default user if specified in environment
     const defaultEmail = process.env.DEFAULT_USER_EMAIL || process.env.MCP_DEFAULT_USER_EMAIL;
     if (defaultEmail) {
       await this.ensureDefaultUser(defaultEmail);
+    }
+
+    // Start embedding monitoring if enabled
+    if (this.embeddingUpdater && process.env.ENABLE_EMBEDDING_MONITOR === 'true') {
+      const interval = parseInt(process.env.EMBEDDING_MONITOR_INTERVAL || '60000', 10);
+      await this.embeddingUpdater.startMonitoring(interval);
     }
   }
 
@@ -162,6 +182,11 @@ export class MemoryCore {
       });
 
       const savedMemory = await this.dbOps.createMemory(memory);
+
+      // Queue for embedding update if auto-update is enabled and no embedding was generated
+      if (this.embeddingUpdater && !embedding) {
+        this.embeddingUpdater.queueMemoryUpdate(savedMemory.id as string);
+      }
 
       return {
         status: MCPToolResultStatus.SUCCESS,
@@ -393,6 +418,11 @@ export class MemoryCore {
 
       const sql = `UPDATE memories SET ${updateFields.join(', ')} WHERE id = ? AND user_id = ?`;
       await this.db.execute(sql, updateValues);
+
+      // Queue for embedding regeneration if content or tags changed
+      if (this.embeddingUpdater && (updates.content || updates.title || updates.tags)) {
+        this.embeddingUpdater.queueMemoryUpdate(memoryId);
+      }
 
       return {
         status: MCPToolResultStatus.SUCCESS,
@@ -766,6 +796,34 @@ export class MemoryCore {
       return {
         status: MCPToolResultStatus.ERROR,
         message: 'Failed to get statistics',
+        error: String(error),
+      };
+    }
+  }
+
+  /**
+   * Manually trigger embedding update for all memories without embeddings
+   */
+  async updateMissingEmbeddings(): Promise<MCPToolResult> {
+    if (!this.embeddingUpdater) {
+      return {
+        status: MCPToolResultStatus.ERROR,
+        message: 'Embedding updater not available',
+        error: 'No OpenAI API key configured or auto-update disabled',
+      };
+    }
+
+    try {
+      const stats = await this.embeddingUpdater.updateAllMissingEmbeddings();
+      return {
+        status: MCPToolResultStatus.SUCCESS,
+        message: `Updated ${stats.updated} embeddings`,
+        data: stats,
+      };
+    } catch (error) {
+      return {
+        status: MCPToolResultStatus.ERROR,
+        message: 'Failed to update embeddings',
         error: String(error),
       };
     }

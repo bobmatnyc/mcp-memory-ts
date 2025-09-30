@@ -7,6 +7,7 @@ A modern TypeScript implementation of a cloud-based vector memory service for AI
 - **🧠 3-Tier Memory System**: SYSTEM, LEARNED, and MEMORY layers for hierarchical knowledge organization
 - **👥 Multi-Tenant Support**: Secure user isolation with API key authentication
 - **🔍 Vector Search**: Semantic similarity search using OpenAI embeddings
+- **🔄 Automatic Embeddings**: Auto-generates and updates embeddings on data changes
 - **🏢 Entity Management**: Track people, organizations, projects, and relationships
 - **📚 Interaction History**: Store and retrieve conversation history with context
 - **🔌 MCP Protocol**: JSON-RPC 2.0 over stdio for Claude Desktop integration
@@ -67,6 +68,10 @@ OPENAI_API_KEY=your-openai-api-key
 LOG_LEVEL=INFO
 MCP_DEBUG=0
 DEFAULT_USER_EMAIL=user@example.com
+
+# Automatic Embedding Updates (v1.1.0+)
+ENABLE_EMBEDDING_MONITOR=true  # Enable background monitoring
+EMBEDDING_MONITOR_INTERVAL=60000  # Check every 60 seconds
 ```
 
 ## Usage
