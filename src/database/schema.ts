@@ -111,6 +111,22 @@ export const CREATE_TABLES = {
       applied_at TEXT NOT NULL
     )
   `,
+
+  api_usage_tracking: `
+    CREATE TABLE IF NOT EXISTS api_usage_tracking (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      api_provider TEXT NOT NULL CHECK(api_provider IN ('openai', 'openrouter')),
+      model TEXT NOT NULL,
+      tokens_used INTEGER NOT NULL DEFAULT 0,
+      cost_usd REAL NOT NULL,
+      operation_type TEXT NOT NULL,
+      timestamp INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      metadata TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `,
 };
 
 /**
@@ -141,6 +157,11 @@ export const CREATE_INDEXES = {
   learned_patterns: [
     'CREATE INDEX IF NOT EXISTS idx_patterns_user_id ON learned_patterns(user_id)',
     'CREATE INDEX IF NOT EXISTS idx_patterns_type ON learned_patterns(pattern_type)',
+  ],
+  api_usage_tracking: [
+    'CREATE INDEX IF NOT EXISTS idx_usage_user_date ON api_usage_tracking(user_id, date)',
+    'CREATE INDEX IF NOT EXISTS idx_usage_provider_date ON api_usage_tracking(api_provider, date)',
+    'CREATE INDEX IF NOT EXISTS idx_usage_date ON api_usage_tracking(date)',
   ],
 };
 
@@ -280,6 +301,7 @@ export async function dropAllTables(db: DatabaseConnection): Promise<void> {
     'interactions',
     'memories',
     'entities',
+    'api_usage_tracking',
     'users',
     'schema_version'
   ];

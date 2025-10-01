@@ -37,7 +37,8 @@ export class MemoryCore {
   constructor(db: DatabaseConnection, openaiApiKey?: string, options: { autoUpdateEmbeddings?: boolean } = {}) {
     this.db = db;
     this.dbOps = new DatabaseOperations(db);
-    this.embeddings = new EmbeddingService(openaiApiKey);
+    // Pass database connection to enable usage tracking
+    this.embeddings = new EmbeddingService(openaiApiKey, 'text-embedding-3-small', db);
     this.autoUpdateEmbeddings = options.autoUpdateEmbeddings !== false;
 
     // Create embedding updater if API key is available and auto-update is enabled
@@ -157,16 +158,31 @@ export class MemoryCore {
         }
       }
 
-      // Generate embedding if requested
+      // Generate embedding if requested (default: true)
       let embedding: number[] | undefined;
       if (options.generateEmbedding !== false) {
-        const embeddingText = EmbeddingService.createMemoryEmbeddingText({
-          title,
-          content,
-          tags: options.tags,
-          memoryType: memoryType as any,
-        });
-        embedding = await this.embeddings.generateEmbedding(embeddingText);
+        try {
+          const embeddingText = EmbeddingService.createMemoryEmbeddingText({
+            title,
+            content,
+            tags: options.tags,
+            memoryType: memoryType as any,
+          });
+          const generatedEmbedding = await this.embeddings.generateEmbedding(embeddingText, userId);
+
+          // Only use embedding if it's valid (non-empty array with proper dimensions)
+          if (generatedEmbedding && generatedEmbedding.length > 0) {
+            embedding = generatedEmbedding;
+            console.error(`[MemoryCore] ✅ Generated embedding with ${embedding.length} dimensions for memory "${title}"`);
+          } else {
+            console.warn(`[MemoryCore] ⚠️  Empty embedding returned for memory "${title}" - will queue for retry`);
+          }
+        } catch (error) {
+          console.error(`[MemoryCore] ❌ Failed to generate embedding for memory "${title}":`, error);
+          // Continue without embedding - it will be queued for retry by embedding updater
+        }
+      } else {
+        console.error(`[MemoryCore] ⏭️  Skipping embedding generation for memory "${title}" (disabled by options)`);
       }
 
       const memory = createMemory({
@@ -183,15 +199,18 @@ export class MemoryCore {
 
       const savedMemory = await this.dbOps.createMemory(memory);
 
-      // Queue for embedding update if auto-update is enabled and no embedding was generated
-      if (this.embeddingUpdater && !embedding) {
+      // Queue for embedding update if auto-update is enabled and no valid embedding was generated
+      if (this.embeddingUpdater && (!embedding || embedding.length === 0)) {
+        console.error(`[MemoryCore] 🔄 Queuing memory ${savedMemory.id} for embedding update (${!embedding ? 'no embedding' : 'empty embedding'})`);
         this.embeddingUpdater.queueMemoryUpdate(savedMemory.id as string);
+      } else if (!embedding || embedding.length === 0) {
+        console.warn(`[MemoryCore] ⚠️  Memory ${savedMemory.id} saved without embedding and no updater available`);
       }
 
       return {
         status: MCPToolResultStatus.SUCCESS,
         message: 'Memory added successfully',
-        data: { id: savedMemory.id, title: savedMemory.title },
+        data: { id: savedMemory.id, title: savedMemory.title, hasEmbedding: !!(embedding && embedding.length > 0) },
       };
     } catch (error) {
       return {
@@ -209,6 +228,7 @@ export class MemoryCore {
     try {
       const userId = this.getUserId(options.userId);
       const limit = options.limit || 10;
+      const strategy = options.strategy || 'composite';
 
       // Check for metadata search syntax: "metadata.field:value" or "field:value"
       const metadataMatch = query.match(/^(?:metadata\.)?(\w+):(.+)$/);
@@ -253,37 +273,60 @@ export class MemoryCore {
         }
       }
 
+      // Determine search approach based on strategy
+      const usePureVectorSearch = strategy === 'similarity';
+
       // Regular search (non-metadata)
-      // First try vector search if we have embeddings
       let vectorResults: Memory[] = [];
       let vectorSearchUsed = false;
       let vectorSearchError: string | null = null;
 
+      // Attempt vector search if query is provided
       if (query.trim()) {
         try {
-          const queryEmbedding = await this.embeddings.generateEmbedding(query);
-          // Use lower default threshold (0.6 instead of 0.7) for better semantic recall
+          const queryEmbedding = await this.embeddings.generateEmbedding(query, userId);
+
+          if (!queryEmbedding || queryEmbedding.length === 0) {
+            throw new Error('Failed to generate query embedding');
+          }
+
+          // For similarity strategy, use lower threshold (0.3) to capture semantic matches
+          // For other strategies, use higher threshold (0.6)
+          const defaultThreshold = usePureVectorSearch ? 0.3 : 0.6;
+
           vectorResults = await this.vectorSearchMemories(userId, queryEmbedding, {
-            threshold: options.threshold || 0.6,
+            threshold: options.threshold !== undefined ? options.threshold : defaultThreshold,
             limit,
             memoryTypes: options.memoryTypes,
           });
           vectorSearchUsed = true;
 
           if (process.env.MCP_DEBUG) {
-            console.log(`[SearchMemories] Vector search returned ${vectorResults.length} results`);
+            console.error(`[SearchMemories] Vector search returned ${vectorResults.length} results (threshold: ${options.threshold !== undefined ? options.threshold : defaultThreshold})`);
           }
         } catch (error) {
           vectorSearchError = String(error);
-          console.error('Vector search failed, falling back to text search:', error);
+          console.error('[SearchMemories] Vector search failed:', error);
+
+          // For similarity strategy, if vector search fails, return error instead of falling back
+          if (usePureVectorSearch) {
+            return {
+              status: MCPToolResultStatus.ERROR,
+              message: 'Semantic search failed - vector embeddings not available',
+              error: vectorSearchError,
+            };
+          }
         }
       }
 
-      // If vector search didn't return enough results, supplement with text search
+      // Text search handling based on strategy
       let textResults: Memory[] = [];
       let textSearchUsed = false;
 
-      if (vectorResults.length < limit) {
+      // Only use text search if:
+      // 1. NOT using pure vector search (similarity strategy)
+      // 2. Vector search didn't return enough results OR vector search failed
+      if (!usePureVectorSearch && (vectorResults.length < limit || vectorSearchError)) {
         textResults = await this.dbOps.searchMemories(
           userId,
           query,
@@ -292,7 +335,7 @@ export class MemoryCore {
         textSearchUsed = textResults.length > 0;
 
         if (process.env.MCP_DEBUG) {
-          console.log(`[SearchMemories] Text search returned ${textResults.length} results`);
+          console.error(`[SearchMemories] Text search returned ${textResults.length} results`);
         }
       }
 
@@ -306,13 +349,16 @@ export class MemoryCore {
         }
       }
 
-      // Apply search strategy sorting
-      const strategy = options.strategy || 'composite';
-      this.sortByStrategy(allResults, strategy);
+      // Apply search strategy sorting (but vector results are already sorted by similarity)
+      if (strategy !== 'similarity') {
+        this.sortByStrategy(allResults, strategy);
+      }
 
       // Build informative message
       let message = `Found ${allResults.length} memories`;
-      if (vectorSearchUsed && textSearchUsed) {
+      if (usePureVectorSearch) {
+        message += ` (semantic/vector search only)`;
+      } else if (vectorSearchUsed && textSearchUsed) {
         message += ` (${vectorResults.length} via semantic search, ${textResults.length} via text search)`;
       } else if (vectorSearchUsed) {
         message += ` (semantic search)`;
@@ -320,8 +366,8 @@ export class MemoryCore {
         message += ` (text search)`;
       }
 
-      if (vectorSearchError) {
-        message += ` [Vector search error: ${vectorSearchError}]`;
+      if (vectorSearchError && !usePureVectorSearch) {
+        message += ` [Vector search unavailable: ${vectorSearchError}]`;
       }
 
       return {
@@ -452,13 +498,16 @@ export class MemoryCore {
 
       // Queue for embedding regeneration if content or tags changed
       if (this.embeddingUpdater && (updates.content || updates.title || updates.tags)) {
+        console.error(`[MemoryCore] 🔄 Queuing memory ${memoryId} for embedding regeneration (content/title/tags changed)`);
         this.embeddingUpdater.queueMemoryUpdate(memoryId);
+      } else if ((updates.content || updates.title || updates.tags) && !this.embeddingUpdater) {
+        console.warn(`[MemoryCore] ⚠️  Memory ${memoryId} content changed but no embedding updater available`);
       }
 
       return {
         status: MCPToolResultStatus.SUCCESS,
         message: 'Memory updated successfully',
-        data: { id: memoryId },
+        data: { id: memoryId, embeddingUpdateQueued: !!(this.embeddingUpdater && (updates.content || updates.title || updates.tags)) },
       };
     } catch (error) {
       return {
@@ -655,9 +704,9 @@ export class MemoryCore {
 
     // Debug logging for development
     if (process.env.MCP_DEBUG) {
-      console.log(`[VectorSearch] Query embedding dimensions: ${queryEmbedding.length}`);
-      console.log(`[VectorSearch] Valid memory embeddings: ${vectorData.length}/${filteredMemories.length}`);
-      console.log(`[VectorSearch] Threshold: ${options.threshold || 0.7}`);
+      console.error(`[VectorSearch] Query embedding dimensions: ${queryEmbedding.length}`);
+      console.error(`[VectorSearch] Valid memory embeddings: ${vectorData.length}/${filteredMemories.length}`);
+      console.error(`[VectorSearch] Threshold: ${options.threshold || 0.7}`);
     }
 
     const similarities = EmbeddingService.findMostSimilar(
@@ -669,7 +718,7 @@ export class MemoryCore {
 
     // Debug logging for results
     if (process.env.MCP_DEBUG && similarities.length > 0) {
-      console.log(`[VectorSearch] Found ${similarities.length} results with similarities:`,
+      console.error(`[VectorSearch] Found ${similarities.length} results with similarities:`,
         similarities.map(s => s.similarity.toFixed(4)));
     }
 

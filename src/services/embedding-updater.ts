@@ -134,7 +134,7 @@ export class EmbeddingUpdater {
           );
 
           if (process.env.MCP_DEBUG) {
-            console.log(`[EmbeddingUpdater] Updated embedding for memory ${memory.id}`);
+            console.error(`[EmbeddingUpdater] Updated embedding for memory ${memory.id}`);
           }
 
           return; // Success
@@ -203,7 +203,7 @@ export class EmbeddingUpdater {
       return { updated: 0, failed: 0 };
     }
 
-    console.log(`[EmbeddingUpdater] Found ${memoryIds.length} memories without embeddings`);
+    console.error(`[EmbeddingUpdater] Found ${memoryIds.length} memories without embeddings`);
 
     let updated = 0;
     let failed = 0;
@@ -233,7 +233,7 @@ export class EmbeddingUpdater {
    * Monitor and update embeddings periodically
    */
   async startMonitoring(intervalMs: number = 60000): Promise<void> {
-    console.log(`[EmbeddingUpdater] Starting monitoring with ${intervalMs}ms interval`);
+    console.error(`[EmbeddingUpdater] Starting monitoring with ${intervalMs}ms interval`);
 
     // Initial update
     await this.updateAllMissingEmbeddings();
@@ -243,7 +243,7 @@ export class EmbeddingUpdater {
       try {
         const stats = await this.updateAllMissingEmbeddings();
         if (stats.updated > 0) {
-          console.log(`[EmbeddingUpdater] Updated ${stats.updated} embeddings`);
+          console.error(`[EmbeddingUpdater] Updated ${stats.updated} embeddings`);
         }
       } catch (error) {
         console.error('[EmbeddingUpdater] Monitoring error:', error);

@@ -4,11 +4,25 @@
  * A minimal working implementation
  */
 
+import { config } from 'dotenv';
+import { resolve } from 'path';
+import { existsSync } from 'fs';
 import { stdin, stdout } from 'process';
 import { createInterface } from 'readline';
 import { initDatabaseFromEnv } from './database/index.js';
 import { MemoryCore } from './core/index.js';
 import { MemoryType, ImportanceLevel, MCPToolResultStatus } from './types/enums.js';
+import { UsageTrackingDB } from './database/usage-tracking.js';
+
+// Load environment variables from .env.local if it exists, otherwise fall back to .env
+const envLocalPath = resolve(process.cwd(), '.env.local');
+const envPath = resolve(process.cwd(), '.env');
+
+if (existsSync(envLocalPath)) {
+  config({ path: envLocalPath });
+} else if (existsSync(envPath)) {
+  config({ path: envPath });
+}
 
 // Simple types
 interface JsonRpcRequest {
@@ -34,6 +48,7 @@ class SimpleMCPServer {
   private debugEnabled = false;
   private requestCounter = 0;
   private memoryCore: MemoryCore | null = null;
+  private db: any = null;
 
   constructor() {
     this.debugEnabled = process.env.MCP_DEBUG === '1';
@@ -57,13 +72,21 @@ class SimpleMCPServer {
     console.error('[MCP ERROR]', ...args);
   }
 
+  private getUserId(): string {
+    // Get the default user ID from environment or use a fallback
+    const defaultEmail = process.env.DEFAULT_USER_EMAIL || process.env.MCP_DEFAULT_USER_EMAIL;
+    // For now, use a simple hash of the email as user ID
+    // In production, this should fetch from the database
+    return defaultEmail || 'default-user';
+  }
+
   async start(): Promise<void> {
     this.logDebug('Starting Simple MCP Memory Server...');
 
     // Initialize database and memory core
     try {
-      const db = initDatabaseFromEnv();
-      this.memoryCore = new MemoryCore(db, process.env.OPENAI_API_KEY);
+      this.db = initDatabaseFromEnv();
+      this.memoryCore = new MemoryCore(this.db, process.env.OPENAI_API_KEY);
       await this.memoryCore.initialize();
       this.logDebug('Memory core initialized successfully');
     } catch (error) {
@@ -324,6 +347,27 @@ class SimpleMCPServer {
           properties: {},
         },
       },
+      {
+        name: 'update_missing_embeddings',
+        description: 'Manually trigger embedding generation for all memories without embeddings',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'get_daily_costs',
+        description: 'Get daily API usage costs for OpenAI embeddings. Returns token usage and costs for the current day or a specific date.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            date: {
+              type: 'string',
+              description: 'Date in YYYY-MM-DD format (defaults to today)',
+            },
+          },
+        },
+      },
     ];
 
     return {
@@ -375,13 +419,14 @@ class SimpleMCPServer {
               tags: Array.isArray(tags) ? tags : [tags],
               importance: importanceValue as any, // Pass decimal importance directly
               metadata: metadataToStore,
-              generateEmbedding: true,
+              generateEmbedding: true, // Always generate embeddings for new memories
             }
           );
 
           if (addResult.status === MCPToolResultStatus.SUCCESS) {
             const memoryData = addResult.data as any;
-            resultText = `✅ Memory stored successfully!\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nType: ${inputType}\nImportance: ${importanceValue}`;
+            const embeddingStatus = memoryData?.hasEmbedding ? '✅ with embedding' : '⚠️  without embedding (will be generated)';
+            resultText = `✅ Memory stored successfully ${embeddingStatus}!\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nType: ${inputType}\nImportance: ${importanceValue}`;
           } else {
             resultText = `❌ Failed to store memory: ${addResult.error || addResult.message}`;
           }
@@ -443,12 +488,12 @@ class SimpleMCPServer {
           if (args.tags !== undefined) updates.tags = args.tags;
           if (args.metadata !== undefined) updates.metadata = args.metadata;
 
-          const updateResult = await this.memoryCore.updateMemory(args.id, updates);
+          const memoryUpdateResult = await this.memoryCore.updateMemory(args.id, updates);
 
-          if (updateResult.status === MCPToolResultStatus.SUCCESS) {
+          if (memoryUpdateResult.status === MCPToolResultStatus.SUCCESS) {
             resultText = `✅ Memory ${args.id} updated successfully!`;
           } else {
-            resultText = `❌ Failed to update memory: ${updateResult.error || updateResult.message}`;
+            resultText = `❌ Failed to update memory: ${memoryUpdateResult.error || memoryUpdateResult.message}`;
           }
           break;
 
@@ -473,9 +518,61 @@ class SimpleMCPServer {
               .map(([type, count]) => `  - ${type}: ${count}`)
               .join('\n');
 
-            resultText = `📊 Memory Statistics:\n\n• Total Memories: ${stats.totalMemories}\n• Total Entities: ${stats.totalEntities}\n• Memories by Type:\n${typeLines || '  - None'}\n• Vector Embeddings: ${stats.memoriesWithEmbeddings || 0}/${stats.totalMemories} (${Math.round(((stats.memoriesWithEmbeddings || 0) / Math.max(stats.totalMemories, 1)) * 100)}%)`;
+            const embeddingCoverage = Math.round(((stats.memoriesWithEmbeddings || 0) / Math.max(stats.totalMemories, 1)) * 100);
+            const embeddingStatus = embeddingCoverage === 100 ? '✅' : embeddingCoverage >= 90 ? '⚠️' : '❌';
+
+            resultText = `📊 Memory Statistics:\n\n• Total Memories: ${stats.totalMemories}\n• Total Entities: ${stats.totalEntities}\n• Memories by Type:\n${typeLines || '  - None'}\n• Vector Embeddings: ${embeddingStatus} ${stats.memoriesWithEmbeddings || 0}/${stats.totalMemories} (${embeddingCoverage}%)\n\n${stats.vectorSearchHealth?.recommendation || ''}`;
           } else {
             resultText = `❌ Failed to get statistics: ${statsResult.error || statsResult.message}`;
+          }
+          break;
+
+        case 'update_missing_embeddings':
+          const embeddingUpdateResult = await this.memoryCore.updateMissingEmbeddings();
+
+          if (embeddingUpdateResult.status === MCPToolResultStatus.SUCCESS && embeddingUpdateResult.data) {
+            const updateStats = embeddingUpdateResult.data as any;
+            resultText = `✅ Embedding update completed!\n\n• Updated: ${updateStats.updated}\n• Failed: ${updateStats.failed}\n• Total processed: ${updateStats.updated + updateStats.failed}`;
+          } else {
+            resultText = `❌ Failed to update embeddings: ${embeddingUpdateResult.error || embeddingUpdateResult.message}`;
+          }
+          break;
+
+        case 'get_daily_costs':
+          try {
+            const date = args.date || new Date().toISOString().split('T')[0];
+            const userId = this.getUserId();
+
+            if (!this.db) {
+              resultText = '❌ Database not initialized';
+              break;
+            }
+
+            const usageTracker = new UsageTrackingDB(this.db);
+            const usage = await usageTracker.getDailyUsage(userId, date);
+
+            const report = `📊 Daily API Cost Report - ${date}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OpenAI (Embeddings):
+  • Requests: ${usage.openai.requests}
+  • Tokens: ${usage.openai.tokens.toLocaleString()}
+  • Cost: $${usage.openai.cost.toFixed(4)}
+
+OpenRouter:
+  • Requests: ${usage.openrouter.requests}
+  • Tokens: ${usage.openrouter.tokens.toLocaleString()}
+  • Cost: $${usage.openrouter.cost.toFixed(4)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total Daily Cost: $${usage.total.cost.toFixed(4)}
+Total Requests: ${usage.total.requests}
+Total Tokens: ${usage.total.tokens.toLocaleString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+            resultText = report;
+          } catch (error) {
+            resultText = `❌ Failed to get daily costs: ${error instanceof Error ? error.message : String(error)}`;
           }
           break;
 

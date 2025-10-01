@@ -223,23 +223,37 @@ export class DatabaseOperations {
         return [];
       }
 
-      // For single word, use simple LIKE
+      // For single word, search in title, content, AND metadata
       if (words.length === 1) {
         const result = await this.db.execute(`
           SELECT * FROM memories
           WHERE user_id = ? AND is_archived = 0
-          AND (LOWER(title) LIKE LOWER(?) OR LOWER(content) LIKE LOWER(?))
+          AND (
+            LOWER(title) LIKE LOWER(?) OR
+            LOWER(content) LIKE LOWER(?) OR
+            (metadata IS NOT NULL AND json_valid(metadata) AND EXISTS (
+              SELECT 1 FROM json_each(metadata)
+              WHERE LOWER(json_each.value) LIKE LOWER(?)
+            ))
+          )
           ORDER BY updated_at DESC
           LIMIT ?
-        `, [userId, `%${words[0]}%`, `%${words[0]}%`, limit]);
+        `, [userId, `%${words[0]}%`, `%${words[0]}%`, `%${words[0]}%`, limit]);
 
         return result.rows.map(row => this.mapRowToMemory(row as any));
       }
 
       // For multiple words, use OR logic to find memories containing ANY of the words
-      // This matches user expectations for search - results are relevant if they contain any search term
-      const conditions = words.map(() => '(LOWER(title) LIKE LOWER(?) OR LOWER(content) LIKE LOWER(?))').join(' OR ');
-      const params = words.flatMap(w => [`%${w}%`, `%${w}%`]);
+      // Search across title, content, AND metadata
+      const conditions = words.map(() => `(
+        LOWER(title) LIKE LOWER(?) OR
+        LOWER(content) LIKE LOWER(?) OR
+        (metadata IS NOT NULL AND json_valid(metadata) AND EXISTS (
+          SELECT 1 FROM json_each(metadata)
+          WHERE LOWER(json_each.value) LIKE LOWER(?)
+        ))
+      )`).join(' OR ');
+      const params = words.flatMap(w => [`%${w}%`, `%${w}%`, `%${w}%`]);
 
       const result = await this.db.execute(`
         SELECT * FROM memories
