@@ -256,27 +256,44 @@ export class MemoryCore {
       // Regular search (non-metadata)
       // First try vector search if we have embeddings
       let vectorResults: Memory[] = [];
+      let vectorSearchUsed = false;
+      let vectorSearchError: string | null = null;
+
       if (query.trim()) {
         try {
           const queryEmbedding = await this.embeddings.generateEmbedding(query);
+          // Use lower default threshold (0.6 instead of 0.7) for better semantic recall
           vectorResults = await this.vectorSearchMemories(userId, queryEmbedding, {
-            threshold: options.threshold || 0.7,
+            threshold: options.threshold || 0.6,
             limit,
             memoryTypes: options.memoryTypes,
           });
+          vectorSearchUsed = true;
+
+          if (process.env.MCP_DEBUG) {
+            console.log(`[SearchMemories] Vector search returned ${vectorResults.length} results`);
+          }
         } catch (error) {
+          vectorSearchError = String(error);
           console.error('Vector search failed, falling back to text search:', error);
         }
       }
 
       // If vector search didn't return enough results, supplement with text search
       let textResults: Memory[] = [];
+      let textSearchUsed = false;
+
       if (vectorResults.length < limit) {
         textResults = await this.dbOps.searchMemories(
           userId,
           query,
           limit - vectorResults.length
         );
+        textSearchUsed = textResults.length > 0;
+
+        if (process.env.MCP_DEBUG) {
+          console.log(`[SearchMemories] Text search returned ${textResults.length} results`);
+        }
       }
 
       // Combine and deduplicate results
@@ -293,9 +310,23 @@ export class MemoryCore {
       const strategy = options.strategy || 'composite';
       this.sortByStrategy(allResults, strategy);
 
+      // Build informative message
+      let message = `Found ${allResults.length} memories`;
+      if (vectorSearchUsed && textSearchUsed) {
+        message += ` (${vectorResults.length} via semantic search, ${textResults.length} via text search)`;
+      } else if (vectorSearchUsed) {
+        message += ` (semantic search)`;
+      } else if (textSearchUsed) {
+        message += ` (text search)`;
+      }
+
+      if (vectorSearchError) {
+        message += ` [Vector search error: ${vectorSearchError}]`;
+      }
+
       return {
         status: MCPToolResultStatus.SUCCESS,
-        message: `Found ${allResults.length} memories`,
+        message,
         data: allResults.slice(0, limit),
       };
     } catch (error) {
@@ -773,6 +804,11 @@ export class MemoryCore {
         this.dbOps.getEntitiesByUserId(targetUserId, 10000),
       ]);
 
+      const memoriesWithEmbeddings = memories.filter(m => m.embedding && m.embedding.length > 0);
+      const embeddingCoverage = memories.length > 0
+        ? Math.round((memoriesWithEmbeddings.length / memories.length) * 100)
+        : 0;
+
       const stats = {
         totalMemories: memories.length,
         totalEntities: entities.length,
@@ -784,7 +820,17 @@ export class MemoryCore {
           acc[e.entityType] = (acc[e.entityType] || 0) + 1;
           return acc;
         }, {} as Record<string, number>),
-        memoriesWithEmbeddings: memories.filter(m => m.embedding && m.embedding.length > 0).length,
+        memoriesWithEmbeddings: memoriesWithEmbeddings.length,
+        embeddingCoverage: `${embeddingCoverage}%`,
+        vectorSearchHealth: {
+          enabled: this.embeddings !== null && (this.embeddings as any).openai !== null,
+          memoriesWithValidEmbeddings: memoriesWithEmbeddings.length,
+          memoriesWithoutEmbeddings: memories.length - memoriesWithEmbeddings.length,
+          coveragePercentage: embeddingCoverage,
+          recommendation: embeddingCoverage < 90
+            ? 'Consider running updateMissingEmbeddings() to improve semantic search coverage'
+            : 'Vector search coverage is healthy',
+        },
       };
 
       return {
