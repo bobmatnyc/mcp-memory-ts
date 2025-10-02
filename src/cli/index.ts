@@ -26,6 +26,7 @@ import {
   setGlobalProgram,
 } from './help.js';
 import { colors, error as errorMsg, success as successMsg } from './colors.js';
+import packageJson from '../../package.json' with { type: 'json' };
 
 // Load environment variables
 dotenv.config();
@@ -36,7 +37,7 @@ const program = new Command();
 program
   .name('mcp-memory')
   .description('MCP Memory TypeScript - Complete Management CLI')
-  .version('1.1.6')
+  .version(packageJson.version)
   .showSuggestionAfterError(false) // Disable default suggestions
   .exitOverride() // Allow us to catch errors
   .configureHelp({
