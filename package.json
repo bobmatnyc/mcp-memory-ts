@@ -1,6 +1,6 @@
 {
   "name": "mcp-memory-ts",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Cloud-based vector MCP memory service for Claude.ai - TypeScript implementation",
   "main": "dist/index.js",
   "type": "module",
