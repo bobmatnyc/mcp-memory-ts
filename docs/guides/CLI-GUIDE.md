@@ -50,7 +50,7 @@ npm run build-full
 ### 3. Install to Claude Desktop
 
 ```bash
-mcp-memory claude-desktop install
+mcp-memory install
 ```
 
 This will:
@@ -83,27 +83,27 @@ Display current configuration (hides sensitive data).
 
 #### Install MCP Server
 ```bash
-mcp-memory claude-desktop install
+mcp-memory install [platform]
 ```
-Install and configure MCP memory server in Claude Desktop.
+Install and configure MCP memory server. Platform defaults to `claude-desktop`.
 
 #### Update Configuration
 ```bash
-mcp-memory claude-desktop update
+mcp-memory update [platform]
 ```
 Update MCP server configuration with current user settings.
 
 #### Check Status
 ```bash
-mcp-memory claude-desktop status
+mcp-memory status [platform]
 ```
 Check installation status and configuration.
 
 #### Uninstall
 ```bash
-mcp-memory claude-desktop uninstall
+mcp-memory uninstall [platform]
 ```
-Remove MCP memory server from Claude Desktop (preserves user config).
+Remove MCP memory server from specified platform (preserves user config).
 
 ### vCard Management
 
@@ -175,12 +175,12 @@ mcp-memory init
 npm run build-full
 
 # 3. Install to Claude Desktop
-mcp-memory claude-desktop install
+mcp-memory install
 
 # 4. Restart Claude Desktop
 
 # 5. Verify installation
-mcp-memory claude-desktop status
+mcp-memory status
 
 # 6. (Optional) Export contacts
 mcp-memory export-vcard --user-email bob@matsuoka.com -o my-contacts.vcf
@@ -195,7 +195,7 @@ When you make changes to the code:
 npm run build-full
 
 # 2. Update Claude Desktop config
-mcp-memory claude-desktop update
+mcp-memory update
 
 # 3. Restart Claude Desktop
 ```
@@ -212,7 +212,7 @@ Run `npm run build-full` to compile the server.
 Make sure Claude Desktop is installed at the standard location.
 
 ### Server not working in Claude Desktop
-1. Check status: `mcp-memory claude-desktop status`
+1. Check status: `mcp-memory status`
 2. Verify all checkmarks are green
 3. Restart Claude Desktop
 4. Check Claude Desktop logs
@@ -238,7 +238,7 @@ npm link
 
 # Test commands
 mcp-memory --help
-mcp-memory claude-desktop status
+mcp-memory status
 ```
 
 ### Unlinking

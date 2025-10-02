@@ -144,7 +144,7 @@ system_health, usage_metrics, user_feedback, sqlite_sequence
 - ✅ `mcp-memory --help` → Full help displayed
 - ✅ `mcp-memory config` → Configuration shown
 - ✅ `mcp-memory list-types` → All types listed
-- ✅ `mcp-memory claude-desktop status` → Correct status
+- ✅ `mcp-memory status` → Correct status
 - ✅ `mcp-memory export-vcard` → Export successful
 
 **Entity Types Available:**
@@ -168,7 +168,7 @@ system_health, usage_metrics, user_feedback, sqlite_sequence
 ✅ User configuration: Found
    User: bob@matsuoka.com
 ❌ MCP Memory Server: Not installed in Claude Desktop
-   Run mcp-memory claude-desktop install to set up
+   Run mcp-memory install to set up
 ```
 
 **Recommendation:** ✅ All CLI commands functional, ready for installation
@@ -340,12 +340,12 @@ The MCP Memory TypeScript server v1.1.6 is fully functional and ready for Claude
 
 1. **Install to Claude Desktop:**
    ```bash
-   mcp-memory claude-desktop install
+   mcp-memory install
    ```
 
 2. **Verify installation:**
    ```bash
-   mcp-memory claude-desktop status
+   mcp-memory status
    ```
 
 3. **Restart Claude Desktop** to activate the integration

@@ -121,17 +121,17 @@ mcp-memory init
 
 **Install to Claude Desktop:**
 ```bash
-mcp-memory claude-desktop install
+mcp-memory install
 ```
 
 **Check installation status:**
 ```bash
-mcp-memory claude-desktop status
+mcp-memory status
 ```
 
 **Update Claude Desktop config:**
 ```bash
-mcp-memory claude-desktop update
+mcp-memory update
 ```
 
 **Export entities to vCard:**
@@ -272,12 +272,12 @@ mcp-memory init
 npm run build-full
 
 # 3. Install to Claude Desktop
-mcp-memory claude-desktop install
+mcp-memory install
 
 # 4. Restart Claude Desktop
 
 # 5. Verify installation
-mcp-memory claude-desktop status
+mcp-memory status
 ```
 
 ### Manual Claude Desktop Integration
@@ -309,7 +309,7 @@ npm install -g mcp-memory-ts
 
 # Use CLI
 mcp-memory init
-mcp-memory claude-desktop install
+mcp-memory install
 ```
 
 ### Production Deployment
@@ -384,7 +384,7 @@ yarn install
 - Validate tool schemas match implementation
 - Review Claude Desktop logs at: `~/Library/Logs/Claude/mcp*.log`
 - Restart Claude Desktop after config changes
-- Use CLI status check: `mcp-memory claude-desktop status`
+- Use CLI status check: `mcp-memory status`
 
 ### Database Problems
 **Problem**: Database connection or query failures
@@ -517,8 +517,8 @@ MCP_DEBUG=1 npm run mcp-server # Start with debug logging
 
 # CLI Tool
 mcp-memory init               # Initialize configuration
-mcp-memory claude-desktop install  # Install to Claude Desktop
-mcp-memory claude-desktop status   # Check installation
+mcp-memory install     # Install to Claude Desktop
+mcp-memory status      # Check installation
 
 # Quality Checks
 npm run lint:fix              # Fix linting issues
@@ -547,7 +547,7 @@ npm link
 mcp-memory init
 
 # 5. Install to Claude Desktop
-mcp-memory claude-desktop install
+mcp-memory install
 
 # 6. Restart Claude Desktop
 ```
@@ -568,7 +568,7 @@ npm run migrate:schema
 npm run build-full
 
 # 5. Update Claude Desktop
-mcp-memory claude-desktop update
+mcp-memory update
 
 # 6. Restart Claude Desktop
 ```

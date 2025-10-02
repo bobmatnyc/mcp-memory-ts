@@ -189,16 +189,37 @@ program
     }
   });
 
-// Claude Desktop management commands
-const claudeDesktop = program
-  .command('claude-desktop')
-  .description('Manage Claude Desktop MCP server integration');
+// MCP server management commands (action-first)
+const SUPPORTED_PLATFORMS = ['claude-desktop', 'claude-code', 'auggie'];
+const DEFAULT_PLATFORM = 'claude-desktop';
 
-claudeDesktop
+function validatePlatform(platform: string): void {
+  if (!SUPPORTED_PLATFORMS.includes(platform)) {
+    console.error(errorMsg(`Unsupported platform '${platform}'`));
+    console.error(
+      `Supported platforms: ${SUPPORTED_PLATFORMS.map(p => colors.parameter(p)).join(', ')}`
+    );
+    process.exit(1);
+  }
+}
+
+function checkPlatformSupport(platform: string): void {
+  if (platform !== 'claude-desktop') {
+    console.error(
+      errorMsg(`Platform '${platform}' is not yet supported. Currently only 'claude-desktop' is available.`)
+    );
+    process.exit(1);
+  }
+}
+
+program
   .command('install')
-  .description('Install MCP memory server in Claude Desktop')
-  .action(async () => {
+  .description('Install MCP memory server to a platform')
+  .argument('[platform]', `Platform to install to (${SUPPORTED_PLATFORMS.join(', ')})`, DEFAULT_PLATFORM)
+  .action(async (platform: string) => {
     try {
+      validatePlatform(platform);
+      checkPlatformSupport(platform);
       await installClaudeDesktop();
     } catch (error) {
       console.error(errorMsg(`Installation failed: ${error}`));
@@ -206,11 +227,14 @@ claudeDesktop
     }
   });
 
-claudeDesktop
+program
   .command('update')
   .description('Update MCP memory server configuration')
-  .action(async () => {
+  .argument('[platform]', `Platform to update (${SUPPORTED_PLATFORMS.join(', ')})`, DEFAULT_PLATFORM)
+  .action(async (platform: string) => {
     try {
+      validatePlatform(platform);
+      checkPlatformSupport(platform);
       await updateClaudeDesktop();
     } catch (error) {
       console.error(errorMsg(`Update failed: ${error}`));
@@ -218,11 +242,14 @@ claudeDesktop
     }
   });
 
-claudeDesktop
+program
   .command('status')
   .description('Check MCP memory server installation status')
-  .action(async () => {
+  .argument('[platform]', `Platform to check (${SUPPORTED_PLATFORMS.join(', ')})`, DEFAULT_PLATFORM)
+  .action(async (platform: string) => {
     try {
+      validatePlatform(platform);
+      checkPlatformSupport(platform);
       await statusClaudeDesktop();
     } catch (error) {
       console.error(errorMsg(`Status check failed: ${error}`));
@@ -230,11 +257,14 @@ claudeDesktop
     }
   });
 
-claudeDesktop
+program
   .command('uninstall')
-  .description('Remove MCP memory server from Claude Desktop')
-  .action(async () => {
+  .description('Remove MCP memory server from a platform')
+  .argument('[platform]', `Platform to uninstall from (${SUPPORTED_PLATFORMS.join(', ')})`, DEFAULT_PLATFORM)
+  .action(async (platform: string) => {
     try {
+      validatePlatform(platform);
+      checkPlatformSupport(platform);
       await uninstallClaudeDesktop();
     } catch (error) {
       console.error(errorMsg(`Uninstall failed: ${error}`));

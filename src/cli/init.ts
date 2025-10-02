@@ -188,7 +188,7 @@ export async function runInitWizard(): Promise<void> {
     console.log(section(`${icons.pencil} Next steps:`));
     console.log(`   ${colors.dim('1.')} Build the project: ${colors.command('npm run build')}`);
     console.log(
-      `   ${colors.dim('2.')} Install to Claude Desktop: ${colors.command('mcp-memory claude-desktop install')}`
+      `   ${colors.dim('2.')} Install to Claude Desktop: ${colors.command('mcp-memory install')}`
     );
     console.log(`   ${colors.dim('3.')} Restart Claude Desktop to activate the MCP server`);
     console.log('');

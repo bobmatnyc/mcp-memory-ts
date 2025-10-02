@@ -22,12 +22,11 @@ Use this checklist to verify the CLI package is working correctly.
 - [ ] Init command available: `mcp-memory init --help`
 - [ ] Config command available: `mcp-memory config --help`
 
-### Claude Desktop Commands
-- [ ] Claude Desktop help: `mcp-memory claude-desktop --help`
-- [ ] Install command available: `mcp-memory claude-desktop install --help`
-- [ ] Update command available: `mcp-memory claude-desktop update --help`
-- [ ] Status command available: `mcp-memory claude-desktop status --help`
-- [ ] Uninstall command available: `mcp-memory claude-desktop uninstall --help`
+### Platform Integration Commands
+- [ ] Install command available: `mcp-memory install --help`
+- [ ] Update command available: `mcp-memory update --help`
+- [ ] Status command available: `mcp-memory status --help`
+- [ ] Uninstall command available: `mcp-memory uninstall --help`
 
 ### vCard Commands
 - [ ] Export command available: `mcp-memory export-vcard --help`
@@ -50,12 +49,12 @@ Use this checklist to verify the CLI package is working correctly.
 - [ ] Config command shows data: `mcp-memory config`
 
 ### Claude Desktop Integration
-- [ ] Status before install shows "not found": `mcp-memory claude-desktop status`
-- [ ] Install completes successfully: `mcp-memory claude-desktop install`
+- [ ] Status before install shows "not found": `mcp-memory status`
+- [ ] Install completes successfully: `mcp-memory install`
 - [ ] Backup created: `~/Library/Application Support/Claude/claude_desktop_config.json.backup`
 - [ ] Config updated: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - [ ] Config contains mcp-memory-ts entry
-- [ ] Status shows all green: `mcp-memory claude-desktop status`
+- [ ] Status shows all green: `mcp-memory status`
 
 ### Claude Desktop Runtime
 - [ ] Restart Claude Desktop
@@ -66,12 +65,12 @@ Use this checklist to verify the CLI package is working correctly.
 ### Update Process
 - [ ] Make code change
 - [ ] Rebuild: `npm run build-full`
-- [ ] Update config: `mcp-memory claude-desktop update`
+- [ ] Update config: `mcp-memory update`
 - [ ] Restart Claude Desktop
 - [ ] Changes reflected
 
 ### Uninstall
-- [ ] Uninstall runs: `mcp-memory claude-desktop uninstall`
+- [ ] Uninstall runs: `mcp-memory uninstall`
 - [ ] Entry removed from Claude Desktop config
 - [ ] User config preserved: `~/.mcp-memory/config.json` still exists
 - [ ] Status shows "not installed"

@@ -196,7 +196,7 @@ export async function updateClaudeDesktop(): Promise<void> {
   const claudeConfig = loadClaudeDesktopConfig();
   if (!claudeConfig || !claudeConfig.mcpServers['mcp-memory-ts']) {
     console.error(
-      error('MCP Memory Server not installed. Run "mcp-memory claude-desktop install" first.')
+      error('MCP Memory Server not installed. Run "mcp-memory install" first.')
     );
     process.exit(1);
   }
@@ -253,7 +253,7 @@ export async function statusClaudeDesktop(): Promise<void> {
   if (!claudeConfig) {
     console.log(error('Claude Desktop config: Not found'));
     console.log(
-      `   ${colors.dim('Run')} ${colors.command('mcp-memory claude-desktop install')} ${colors.dim('to set up')}`
+      `   ${colors.dim('Run')} ${colors.command('mcp-memory install')} ${colors.dim('to set up')}`
     );
     console.log('');
     return;
@@ -264,7 +264,7 @@ export async function statusClaudeDesktop(): Promise<void> {
   if (!mcpConfig) {
     console.log(error('MCP Memory Server: Not installed in Claude Desktop'));
     console.log(
-      `   ${colors.dim('Run')} ${colors.command('mcp-memory claude-desktop install')} ${colors.dim('to set up')}`
+      `   ${colors.dim('Run')} ${colors.command('mcp-memory install')} ${colors.dim('to set up')}`
     );
     console.log('');
     return;

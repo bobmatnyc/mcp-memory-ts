@@ -27,14 +27,9 @@ export const commandCategories: CommandCategory[] = [
     commands: ['init', 'config', 'test'],
   },
   {
-    name: 'Claude Desktop Integration',
+    name: 'Platform Integration',
     icon: icons.robot,
-    commands: [
-      'claude-desktop install',
-      'claude-desktop update',
-      'claude-desktop status',
-      'claude-desktop uninstall',
-    ],
+    commands: ['install', 'update', 'status', 'uninstall'],
   },
   {
     name: 'Data Management',
@@ -69,28 +64,44 @@ export const commandExamples: Record<string, CommandExample[]> = {
       command: 'mcp-memory test --verbose',
     },
   ],
-  'claude-desktop install': [
+  install: [
     {
-      description: 'Install MCP server to Claude Desktop',
-      command: 'mcp-memory claude-desktop install',
+      description: 'Install MCP server to Claude Desktop (default)',
+      command: 'mcp-memory install',
+    },
+    {
+      description: 'Install to Claude Code (coming soon)',
+      command: 'mcp-memory install claude-code',
     },
   ],
-  'claude-desktop update': [
+  update: [
     {
-      description: 'Update MCP server configuration',
-      command: 'mcp-memory claude-desktop update',
+      description: 'Update MCP server configuration for Claude Desktop',
+      command: 'mcp-memory update',
+    },
+    {
+      description: 'Update configuration for specific platform',
+      command: 'mcp-memory update claude-desktop',
     },
   ],
-  'claude-desktop status': [
+  status: [
     {
-      description: 'Check installation status',
-      command: 'mcp-memory claude-desktop status',
+      description: 'Check installation status for Claude Desktop',
+      command: 'mcp-memory status',
+    },
+    {
+      description: 'Check status for specific platform',
+      command: 'mcp-memory status auggie',
     },
   ],
-  'claude-desktop uninstall': [
+  uninstall: [
     {
       description: 'Remove MCP server from Claude Desktop',
-      command: 'mcp-memory claude-desktop uninstall',
+      command: 'mcp-memory uninstall',
+    },
+    {
+      description: 'Uninstall from specific platform',
+      command: 'mcp-memory uninstall claude-desktop',
     },
   ],
   'export-vcard': [
@@ -177,18 +188,17 @@ export function formatMainHelp(program: Command): string {
   lines.push('');
   lines.push(section('QUICK START'));
   lines.push(`  ${colors.dim('1.')} Initialize configuration:    ${command('mcp-memory init')}`);
-  lines.push(
-    `  ${colors.dim('2.')} Install to Claude Desktop:  ${command('mcp-memory claude-desktop install')}`
-  );
-  lines.push(
-    `  ${colors.dim('3.')} Check status:               ${command('mcp-memory claude-desktop status')}`
-  );
+  lines.push(`  ${colors.dim('2.')} Install to Claude Desktop:  ${command('mcp-memory install')}`);
+  lines.push(`  ${colors.dim('3.')} Check status:               ${command('mcp-memory status')}`);
 
   // Examples
   lines.push('');
   lines.push(section('EXAMPLES'));
   lines.push(`  ${colors.dim('#')} Get help for a specific command`);
-  lines.push(`  ${example('$ mcp-memory claude-desktop install --help')}`);
+  lines.push(`  ${example('$ mcp-memory install --help')}`);
+  lines.push('');
+  lines.push(`  ${colors.dim('#')} Install to a specific platform`);
+  lines.push(`  ${example('$ mcp-memory install claude-desktop')}`);
   lines.push('');
   lines.push(`  ${colors.dim('#')} Export contacts to vCard`);
   lines.push(
