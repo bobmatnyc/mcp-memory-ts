@@ -1,4 +1,6 @@
 {
+  "version": 2,
+  "name": "mcp-memory-ts",
   "functions": {
     "api/index.ts": {
       "maxDuration": 30,
@@ -7,12 +9,20 @@
     "api/auth/webhook.ts": {
       "maxDuration": 10,
       "memory": 512
+    },
+    "api/mcp/index.ts": {
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
   "rewrites": [
     {
       "source": "/api/auth/webhook",
       "destination": "/api/auth/webhook"
+    },
+    {
+      "source": "/api/mcp",
+      "destination": "/api/mcp"
     },
     {
       "source": "/api/(.*)",
@@ -33,6 +43,22 @@
       "source": "/api/(.*)",
       "headers": [
         {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://ai-memory.app"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,OPTIONS,POST,PUT,DELETE"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Authorization, Content-Type, X-Requested-With, X-Session-ID"
+        },
+        {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
         },
@@ -47,6 +73,39 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), camera=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.clerk.com https://api.openai.com"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
         }
       ]
     }

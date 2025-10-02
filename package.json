@@ -1,9 +1,12 @@
 {
   "name": "mcp-memory-ts",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Cloud-based vector MCP memory service for Claude.ai - TypeScript implementation",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "mcp-memory-cli": "./dist/cli/index.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.simple.json",
     "build-full": "tsc",
@@ -12,7 +15,12 @@
     "start": "node dist/index.js",
     "mcp-server": "tsx src/simple-mcp-server.ts",
     "mcp-server-full": "tsx src/mcp/server.ts",
+    "mcp-server-remote": "tsx src/remote-mcp-server.ts",
     "api-server": "tsx src/api/server.ts",
+    "cli": "tsx src/cli/index.ts",
+    "cli:export": "tsx src/cli/index.ts export-vcard",
+    "cli:import": "tsx src/cli/index.ts import-vcard",
+    "cli:types": "tsx src/cli/index.ts list-types",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "test:unit": "vitest run tests/unit/",
@@ -23,6 +31,7 @@
     "deploy:vercel": "./scripts/deploy-vercel.sh",
     "setup:vercel": "./scripts/setup-vercel-env.sh",
     "test:vercel": "./scripts/test-vercel-setup.sh",
+    "verify:env": "./scripts/verify-env-config.sh",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
@@ -51,6 +60,7 @@
     "@libsql/client": "^0.14.0",
     "@types/node": "^20.0.0",
     "@vercel/node": "^3.0.0",
+    "commander": "^14.0.1",
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
     "openai": "^4.67.3",

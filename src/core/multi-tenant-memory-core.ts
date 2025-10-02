@@ -291,6 +291,7 @@ export class MultiTenantMemoryCore extends MemoryCore {
       importance?: ImportanceLevel;
       tags?: string[];
       entityIds?: number[];
+      metadata?: Record<string, unknown>;
       generateEmbedding?: boolean;
       useBuffer?: boolean;
     } = {}
