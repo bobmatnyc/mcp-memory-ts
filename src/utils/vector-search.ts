@@ -65,7 +65,7 @@ export class VectorSearchEngine<T = any> {
 
     for (const indexItem of this.index) {
       const similarity = EmbeddingService.cosineSimilarity(queryVector, indexItem.vector);
-      
+
       if (similarity >= threshold) {
         const result: VectorSearchResult<T> = {
           item: indexItem.data,
@@ -81,9 +81,7 @@ export class VectorSearchEngine<T = any> {
     }
 
     // Sort by similarity score (descending) and limit results
-    return results
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
+    return results.sort((a, b) => b.score - a.score).slice(0, limit);
   }
 
   /**
@@ -99,9 +97,9 @@ export class VectorSearchEngine<T = any> {
     } = {}
   ): VectorSearchResult<T>[] {
     const { limit = 10, threshold = 0.0, aggregation = 'mean' } = options;
-    
+
     if (queryVectors.length === 0) return [];
-    
+
     // Validate weights
     const actualWeights = weights || queryVectors.map(() => 1 / queryVectors.length);
     if (actualWeights.length !== queryVectors.length) {
@@ -113,7 +111,7 @@ export class VectorSearchEngine<T = any> {
     // Calculate scores for each query vector
     for (let i = 0; i < queryVectors.length; i++) {
       const queryResults = this.searchSimilar(queryVectors[i]!, { limit: this.index.length });
-      
+
       for (const result of queryResults) {
         const id = this.getItemId(result.item);
         if (!scoreMap.has(id)) {
@@ -125,10 +123,10 @@ export class VectorSearchEngine<T = any> {
 
     // Aggregate scores
     const aggregatedResults: VectorSearchResult<T>[] = [];
-    
+
     for (const [id, scores] of scoreMap.entries()) {
       let finalScore: number;
-      
+
       switch (aggregation) {
         case 'max':
           finalScore = Math.max(...scores);
@@ -153,9 +151,7 @@ export class VectorSearchEngine<T = any> {
       }
     }
 
-    return aggregatedResults
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
+    return aggregatedResults.sort((a, b) => b.score - a.score).slice(0, limit);
   }
 
   /**
@@ -193,7 +189,7 @@ export class VectorSearchEngine<T = any> {
 
     const vectors = this.index.map(item => item.vector);
     const stats = EmbeddingService.calculateEmbeddingStats(vectors);
-    
+
     // Rough memory usage calculation
     const memoryUsage = this.index.length * this.dimensions * 8; // 8 bytes per float64
 
@@ -219,9 +215,9 @@ export class VectorSearchEngine<T = any> {
   removeVectors(ids: (string | number)[]): number {
     const idsSet = new Set(ids);
     const originalLength = this.index.length;
-    
+
     this.index = this.index.filter(item => !idsSet.has(this.getItemId(item.data)));
-    
+
     return originalLength - this.index.length;
   }
 
@@ -230,9 +226,9 @@ export class VectorSearchEngine<T = any> {
    */
   updateVector(id: string | number, newVector: number[], newData?: T): boolean {
     const index = this.index.findIndex(item => this.getItemId(item.data) === id);
-    
+
     if (index === -1) return false;
-    
+
     if (newVector.length !== this.dimensions) {
       throw new Error(`Vector must have ${this.dimensions} dimensions`);
     }
@@ -241,7 +237,7 @@ export class VectorSearchEngine<T = any> {
     if (newData !== undefined) {
       this.index[index]!.data = newData;
     }
-    
+
     return true;
   }
 
@@ -263,7 +259,7 @@ export function createMemoryVectorIndex<T extends { id?: string | number; embedd
   memories: T[]
 ): VectorSearchEngine<T> {
   const engine = new VectorSearchEngine<T>();
-  
+
   const vectorData: VectorIndex<T>[] = memories
     .filter(memory => memory.embedding && memory.embedding.length > 0)
     .map(memory => ({
@@ -292,10 +288,10 @@ export function hybridSearch<T>(
   } = {}
 ): VectorSearchResult<T>[] {
   const { vectorWeight = 0.7, textWeight = 0.3, maxResults = 10 } = options;
-  
+
   // Create a map to combine scores
   const scoreMap = new Map<string, { item: T; vectorScore: number; textScore: number }>();
-  
+
   // Add vector results
   vectorResults.forEach((result, index) => {
     const id = JSON.stringify(result.item);
@@ -305,12 +301,12 @@ export function hybridSearch<T>(
       textScore: 0,
     });
   });
-  
+
   // Add text results with position-based scoring
   textResults.forEach((item, index) => {
     const id = JSON.stringify(item);
     const textScore = Math.max(0, 1 - index / textResults.length); // Higher score for earlier results
-    
+
     if (scoreMap.has(id)) {
       scoreMap.get(id)!.textScore = textScore;
     } else {
@@ -321,7 +317,7 @@ export function hybridSearch<T>(
       });
     }
   });
-  
+
   // Calculate combined scores and return results
   const combinedResults: VectorSearchResult<T>[] = Array.from(scoreMap.values())
     .map(({ item, vectorScore, textScore }) => ({
@@ -330,6 +326,6 @@ export function hybridSearch<T>(
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, maxResults);
-  
+
   return combinedResults;
 }

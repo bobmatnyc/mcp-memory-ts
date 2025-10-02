@@ -21,11 +21,7 @@ export class EmbeddingUpdater {
   private retryAttempts: number;
   private retryDelay: number;
 
-  constructor(
-    db: DatabaseConnection,
-    openaiApiKey?: string,
-    options: EmbeddingUpdateOptions = {}
-  ) {
+  constructor(db: DatabaseConnection, openaiApiKey?: string, options: EmbeddingUpdateOptions = {}) {
     this.db = db;
     this.embeddings = new EmbeddingService(openaiApiKey);
     this.batchSize = options.batchSize || 10;
@@ -146,7 +142,10 @@ export class EmbeddingUpdater {
         attempts++;
 
         if (attempts >= this.retryAttempts) {
-          console.error(`[EmbeddingUpdater] Failed to update embedding for memory ${memory.id} after ${attempts} attempts:`, error);
+          console.error(
+            `[EmbeddingUpdater] Failed to update embedding for memory ${memory.id} after ${attempts} attempts:`,
+            error
+          );
           return;
         }
 
@@ -160,18 +159,12 @@ export class EmbeddingUpdater {
    * Create embedding text from memory data
    */
   private createEmbeddingText(memory: any): string {
-    const parts = [
-      memory.title,
-      memory.content,
-      memory.memory_type,
-    ];
+    const parts = [memory.title, memory.content, memory.memory_type];
 
     // Add tags if present
     if (memory.tags) {
       try {
-        const tags = typeof memory.tags === 'string'
-          ? JSON.parse(memory.tags)
-          : memory.tags;
+        const tags = typeof memory.tags === 'string' ? JSON.parse(memory.tags) : memory.tags;
 
         if (Array.isArray(tags) && tags.length > 0) {
           parts.push(`Tags: ${tags.join(', ')}`);

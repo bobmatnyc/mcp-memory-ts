@@ -27,7 +27,7 @@ export class SchemaCompatibility {
     { typescript: 'content', python: 'details' },
     { typescript: 'memoryType', python: 'memory_type' },
     { typescript: 'isArchived', python: 'archived' },
-    { typescript: 'entityIds', python: 'entity_ids', transform: (v) => JSON.stringify(v) },
+    { typescript: 'entityIds', python: 'entity_ids', transform: v => JSON.stringify(v) },
     { typescript: 'createdAt', python: 'created_at' },
     { typescript: 'updatedAt', python: 'updated_at' },
   ];
@@ -146,9 +146,10 @@ export class SchemaCompatibility {
 
     if (row.embedding) {
       try {
-        const parsed = typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding;
+        const parsed =
+          typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding;
         // Ensure embedding is a proper array, not an empty array or null
-        memory.embedding = (Array.isArray(parsed) && parsed.length > 0) ? parsed : null;
+        memory.embedding = Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
       } catch {
         memory.embedding = null;
       }
@@ -198,9 +199,10 @@ export class SchemaCompatibility {
       mapped.tags = JSON.stringify(mapped.tags);
     }
     if (mapped.relationships) {
-      mapped.relationships = typeof mapped.relationships === 'string'
-        ? mapped.relationships
-        : JSON.stringify(mapped.relationships);
+      mapped.relationships =
+        typeof mapped.relationships === 'string'
+          ? mapped.relationships
+          : JSON.stringify(mapped.relationships);
     }
     if (mapped.metadata && typeof mapped.metadata === 'object') {
       mapped.metadata = JSON.stringify(mapped.metadata);
@@ -242,9 +244,8 @@ export class SchemaCompatibility {
     // Parse contact info (contains email, phone, address)
     if (row.contact_info) {
       try {
-        const contact = typeof row.contact_info === 'string'
-          ? JSON.parse(row.contact_info)
-          : row.contact_info;
+        const contact =
+          typeof row.contact_info === 'string' ? JSON.parse(row.contact_info) : row.contact_info;
         entity.email = contact.email || null;
         entity.phone = contact.phone || null;
         entity.address = contact.address || null;
@@ -272,9 +273,8 @@ export class SchemaCompatibility {
 
     if (row.metadata) {
       try {
-        entity.metadata = typeof row.metadata === 'string'
-          ? JSON.parse(row.metadata)
-          : row.metadata;
+        entity.metadata =
+          typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
       } catch {
         entity.metadata = {};
       }
@@ -308,14 +308,14 @@ export class SchemaCompatibility {
    * Convert Python snake_case to TypeScript camelCase
    */
   static snakeToCamel(str: string): string {
-    return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    return str.replace(/_([a-z])/g, g => g[1].toUpperCase());
   }
 
   /**
    * Convert TypeScript camelCase to Python snake_case
    */
   static camelToSnake(str: string): string {
-    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
   }
 
   /**
@@ -323,7 +323,7 @@ export class SchemaCompatibility {
    */
   static transformForPythonAPI(data: any): any {
     if (Array.isArray(data)) {
-      return data.map((item) => this.transformForPythonAPI(item));
+      return data.map(item => this.transformForPythonAPI(item));
     }
 
     if (data === null || typeof data !== 'object') {
@@ -346,7 +346,7 @@ export class SchemaCompatibility {
       if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
         transformed[snakeKey] = this.transformForPythonAPI(value);
       } else if (Array.isArray(value)) {
-        transformed[snakeKey] = value.map((item) =>
+        transformed[snakeKey] = value.map(item =>
           typeof item === 'object' ? this.transformForPythonAPI(item) : item
         );
       } else {
@@ -362,7 +362,7 @@ export class SchemaCompatibility {
    */
   static transformFromPythonAPI(data: any): any {
     if (Array.isArray(data)) {
-      return data.map((item) => this.transformFromPythonAPI(item));
+      return data.map(item => this.transformFromPythonAPI(item));
     }
 
     if (data === null || typeof data !== 'object') {
@@ -385,7 +385,7 @@ export class SchemaCompatibility {
       if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
         transformed[camelKey] = this.transformFromPythonAPI(value);
       } else if (Array.isArray(value)) {
-        transformed[camelKey] = value.map((item) =>
+        transformed[camelKey] = value.map(item =>
           typeof item === 'object' ? this.transformFromPythonAPI(item) : item
         );
       } else {

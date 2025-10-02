@@ -8,7 +8,10 @@ import { VCardVersion, type VCardData } from './types.js';
 /**
  * Generate vCard text from VCardData objects
  */
-export function generateVCard(cards: VCardData[], version: VCardVersion = VCardVersion.V4_0): string {
+export function generateVCard(
+  cards: VCardData[],
+  version: VCardVersion = VCardVersion.V4_0
+): string {
   return cards.map(card => generateSingleVCard(card, version)).join('\n');
 }
 

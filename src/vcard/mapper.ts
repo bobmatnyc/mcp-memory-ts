@@ -32,9 +32,11 @@ export function entityToVCard(entity: Entity): VCardData {
   if (entity.email) vcard.email = [entity.email];
   if (entity.phone) vcard.tel = [entity.phone];
   if (entity.address) {
-    vcard.adr = [{
-      streetAddress: entity.address,
-    }];
+    vcard.adr = [
+      {
+        streetAddress: entity.address,
+      },
+    ];
   }
   if (entity.company) vcard.org = entity.company;
   if (entity.title) vcard.title = entity.title;

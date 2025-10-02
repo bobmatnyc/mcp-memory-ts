@@ -63,7 +63,7 @@ export class UserBufferManager {
   async addToBuffer(userId: string, operation: Record<string, any>): Promise<boolean> {
     const buffer = await this.getBuffer(userId);
     buffer.buffer.push(operation);
-    
+
     // Return true if buffer should be flushed
     return buffer.buffer.length >= buffer.maxSize;
   }
@@ -79,7 +79,7 @@ export class UserBufferManager {
   shouldFlush(userId: string): boolean {
     const buffer = this.buffers.get(userId);
     if (!buffer) return false;
-    
+
     const timeSinceFlush = Date.now() - buffer.lastFlush.getTime();
     return timeSinceFlush >= buffer.flushInterval;
   }
@@ -91,14 +91,14 @@ export class UserBufferManager {
 
   async flushAll(): Promise<Array<{ userId: string; operations: Array<Record<string, any>> }>> {
     const results: Array<{ userId: string; operations: Array<Record<string, any>> }> = [];
-    
+
     for (const [userId, buffer] of this.buffers.entries()) {
       if (buffer.buffer.length > 0) {
         const operations = await this.getAndClearBuffer(userId);
         results.push({ userId, operations });
       }
     }
-    
+
     return results;
   }
 }
@@ -165,7 +165,10 @@ export class MultiTenantMemoryCore extends MemoryCore {
   /**
    * Check if user is within quota limits
    */
-  async checkQuota(userId: string, operation: string): Promise<{ allowed: boolean; reason?: string }> {
+  async checkQuota(
+    userId: string,
+    operation: string
+  ): Promise<{ allowed: boolean; reason?: string }> {
     const quota = await this.getUserQuota(userId);
     const usage = await this.getUserUsage(userId);
 
@@ -206,7 +209,7 @@ export class MultiTenantMemoryCore extends MemoryCore {
    */
   async getUserUsage(userId: string): Promise<UserUsage> {
     let usage = this.userUsage.get(userId);
-    
+
     if (!usage) {
       // Calculate usage from database
       usage = await this.calculateUserUsage(userId);
@@ -222,12 +225,12 @@ export class MultiTenantMemoryCore extends MemoryCore {
       'SELECT COUNT(*) as count, COALESCE(SUM(LENGTH(content)), 0) as bytes FROM memories WHERE user_id = ?',
       [userId]
     );
-    
+
     const entitiesResult = await this.db.execute(
       'SELECT COUNT(*) as count FROM entities WHERE user_id = ?',
       [userId]
     );
-    
+
     const interactionsResult = await this.db.execute(
       'SELECT COUNT(*) as count FROM interactions WHERE user_id = ?',
       [userId]
@@ -260,7 +263,7 @@ export class MultiTenantMemoryCore extends MemoryCore {
    */
   private async updateUsage(userId: string, operation: string, delta: number = 1): Promise<void> {
     const usage = await this.getUserUsage(userId);
-    
+
     switch (operation) {
       case 'add_memory':
         usage.memoriesCount += delta;
@@ -272,10 +275,10 @@ export class MultiTenantMemoryCore extends MemoryCore {
         usage.interactionsCount += delta;
         break;
     }
-    
+
     usage.dailyApiCalls += 1;
     usage.lastApiCall = new Date();
-    
+
     this.userUsage.set(userId, usage);
   }
 
@@ -297,7 +300,7 @@ export class MultiTenantMemoryCore extends MemoryCore {
     } = {}
   ): Promise<MCPToolResult> {
     const userId = this.getUserId(options.userId);
-    
+
     // Check quota
     const quotaCheck = await this.checkQuota(userId, 'add_memory');
     if (!quotaCheck.allowed) {
@@ -324,7 +327,7 @@ export class MultiTenantMemoryCore extends MemoryCore {
       try {
         const memoryId = await this.memoryBuffer.add(memoryData);
         await this.updateUsage(userId, 'add_memory');
-        
+
         return {
           status: MCPToolResultStatus.SUCCESS,
           message: 'Memory queued for processing',
@@ -344,7 +347,7 @@ export class MultiTenantMemoryCore extends MemoryCore {
     if (result.status === MCPToolResultStatus.SUCCESS) {
       await this.updateUsage(userId, 'add_memory');
     }
-    
+
     return result;
   }
 
@@ -355,8 +358,8 @@ export class MultiTenantMemoryCore extends MemoryCore {
     const usage = await this.getUserUsage(userId);
     const quota = await this.getUserQuota(userId);
     const bufferStats = await this.memoryBuffer.getStatus();
-    
-    const isOverQuota = 
+
+    const isOverQuota =
       usage.memoriesCount >= quota.maxMemories ||
       usage.entitiesCount >= quota.maxEntities ||
       usage.interactionsCount >= quota.maxInteractions ||

@@ -164,7 +164,11 @@ function unfoldLines(lines: string[]): string[] {
 /**
  * Parse a vCard line into property, parameters, and value
  */
-function parseLine(line: string): { property: string; parameters: Record<string, string>; value: string } {
+function parseLine(line: string): {
+  property: string;
+  parameters: Record<string, string>;
+  value: string;
+} {
   const colonIndex = line.indexOf(':');
   if (colonIndex === -1) {
     return { property: '', parameters: {}, value: line };

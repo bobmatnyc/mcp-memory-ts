@@ -127,11 +127,11 @@ export function getDatabase(config?: DatabaseConfig): DatabaseConnection {
   if (!dbInstance && config) {
     dbInstance = new DatabaseConnection(config);
   }
-  
+
   if (!dbInstance) {
     throw new Error('Database not initialized. Provide config on first call.');
   }
-  
+
   return dbInstance;
 }
 
@@ -146,9 +146,7 @@ export function initDatabaseFromEnv(): DatabaseConnection {
   };
 
   if (!config.url) {
-    throw new Error(
-      'Database configuration missing. Set TURSO_URL environment variable.'
-    );
+    throw new Error('Database configuration missing. Set TURSO_URL environment variable.');
   }
 
   // For local file databases, auth token is not required

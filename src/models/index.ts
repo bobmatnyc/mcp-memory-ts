@@ -78,7 +78,7 @@ export function createMemory(data: Partial<Memory>): Omit<Memory, 'id'> {
     title: data.title || '',
     content: data.content || '',
     memoryType: data.memoryType!,
-    importance: data.importance !== undefined ? data.importance as any : 0.5,
+    importance: data.importance !== undefined ? (data.importance as any) : 0.5,
     tags: data.tags,
     entityIds: data.entityIds,
     embedding: data.embedding,
@@ -132,7 +132,9 @@ export function sanitizeTags(tags?: string[]): string[] {
 /**
  * Parse metadata safely
  */
-export function parseMetadata(metadata?: string | Record<string, unknown>): Record<string, unknown> {
+export function parseMetadata(
+  metadata?: string | Record<string, unknown>
+): Record<string, unknown> {
   if (!metadata) return {};
   if (typeof metadata === 'object') return metadata;
   try {

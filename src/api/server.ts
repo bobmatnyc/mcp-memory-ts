@@ -91,118 +91,142 @@ class APIServer {
     });
 
     // Memory endpoints
-    this.fastify.post('/api/memories', {
-      schema: {
-        body: {
-          type: 'object',
-          required: ['title', 'content'],
-          properties: {
-            title: { type: 'string' },
-            content: { type: 'string' },
-            memory_type: { type: 'string' },
-            importance: { type: 'integer', minimum: 1, maximum: 4 },
-            tags: { type: 'array', items: { type: 'string' } },
-            entity_ids: { type: 'array', items: { type: 'integer' } },
+    this.fastify.post(
+      '/api/memories',
+      {
+        schema: {
+          body: {
+            type: 'object',
+            required: ['title', 'content'],
+            properties: {
+              title: { type: 'string' },
+              content: { type: 'string' },
+              memory_type: { type: 'string' },
+              importance: { type: 'integer', minimum: 1, maximum: 4 },
+              tags: { type: 'array', items: { type: 'string' } },
+              entity_ids: { type: 'array', items: { type: 'integer' } },
+            },
           },
         },
       },
-    }, this.addMemory.bind(this));
+      this.addMemory.bind(this)
+    );
 
-    this.fastify.get('/api/memories/search', {
-      schema: {
-        querystring: {
-          type: 'object',
-          required: ['query'],
-          properties: {
-            query: { type: 'string' },
-            limit: { type: 'integer', minimum: 1, maximum: 100 },
-            threshold: { type: 'number', minimum: 0, maximum: 1 },
-            memory_types: { type: 'string' }, // Comma-separated
+    this.fastify.get(
+      '/api/memories/search',
+      {
+        schema: {
+          querystring: {
+            type: 'object',
+            required: ['query'],
+            properties: {
+              query: { type: 'string' },
+              limit: { type: 'integer', minimum: 1, maximum: 100 },
+              threshold: { type: 'number', minimum: 0, maximum: 1 },
+              memory_types: { type: 'string' }, // Comma-separated
+            },
           },
         },
       },
-    }, this.searchMemories.bind(this));
+      this.searchMemories.bind(this)
+    );
 
     this.fastify.get('/api/memories', this.getMemories.bind(this));
 
     // Entity endpoints
-    this.fastify.post('/api/entities', {
-      schema: {
-        body: {
-          type: 'object',
-          required: ['name', 'entity_type'],
-          properties: {
-            name: { type: 'string' },
-            entity_type: { type: 'string' },
-            description: { type: 'string' },
-            company: { type: 'string' },
-            title: { type: 'string' },
-            email: { type: 'string' },
-            phone: { type: 'string' },
-            website: { type: 'string' },
-            importance: { type: 'integer', minimum: 1, maximum: 4 },
-            tags: { type: 'array', items: { type: 'string' } },
-            notes: { type: 'string' },
+    this.fastify.post(
+      '/api/entities',
+      {
+        schema: {
+          body: {
+            type: 'object',
+            required: ['name', 'entity_type'],
+            properties: {
+              name: { type: 'string' },
+              entity_type: { type: 'string' },
+              description: { type: 'string' },
+              company: { type: 'string' },
+              title: { type: 'string' },
+              email: { type: 'string' },
+              phone: { type: 'string' },
+              website: { type: 'string' },
+              importance: { type: 'integer', minimum: 1, maximum: 4 },
+              tags: { type: 'array', items: { type: 'string' } },
+              notes: { type: 'string' },
+            },
           },
         },
       },
-    }, this.createEntity.bind(this));
+      this.createEntity.bind(this)
+    );
 
-    this.fastify.get('/api/entities/search', {
-      schema: {
-        querystring: {
-          type: 'object',
-          required: ['query'],
-          properties: {
-            query: { type: 'string' },
-            limit: { type: 'integer', minimum: 1, maximum: 100 },
+    this.fastify.get(
+      '/api/entities/search',
+      {
+        schema: {
+          querystring: {
+            type: 'object',
+            required: ['query'],
+            properties: {
+              query: { type: 'string' },
+              limit: { type: 'integer', minimum: 1, maximum: 100 },
+            },
           },
         },
       },
-    }, this.searchEntities.bind(this));
+      this.searchEntities.bind(this)
+    );
 
     this.fastify.get('/api/entities', this.getEntities.bind(this));
 
     // Search endpoints
-    this.fastify.get('/api/search', {
-      schema: {
-        querystring: {
-          type: 'object',
-          required: ['query'],
-          properties: {
-            query: { type: 'string' },
-            limit: { type: 'integer', minimum: 1, maximum: 100 },
-            threshold: { type: 'number', minimum: 0, maximum: 1 },
-            memory_types: { type: 'string' }, // Comma-separated
-            entity_types: { type: 'string' }, // Comma-separated
+    this.fastify.get(
+      '/api/search',
+      {
+        schema: {
+          querystring: {
+            type: 'object',
+            required: ['query'],
+            properties: {
+              query: { type: 'string' },
+              limit: { type: 'integer', minimum: 1, maximum: 100 },
+              threshold: { type: 'number', minimum: 0, maximum: 1 },
+              memory_types: { type: 'string' }, // Comma-separated
+              entity_types: { type: 'string' }, // Comma-separated
+            },
           },
         },
       },
-    }, this.unifiedSearch.bind(this));
+      this.unifiedSearch.bind(this)
+    );
 
     // Statistics endpoint
     this.fastify.get('/api/statistics', this.getStatistics.bind(this));
 
     // User management endpoints
-    this.fastify.post('/api/users', {
-      schema: {
-        body: {
-          type: 'object',
-          required: ['email'],
-          properties: {
-            email: { type: 'string' },
-            name: { type: 'string' },
-            organization: { type: 'string' },
+    this.fastify.post(
+      '/api/users',
+      {
+        schema: {
+          body: {
+            type: 'object',
+            required: ['email'],
+            properties: {
+              email: { type: 'string' },
+              name: { type: 'string' },
+              organization: { type: 'string' },
+            },
           },
         },
       },
-    }, this.createUser.bind(this));
+      this.createUser.bind(this)
+    );
   }
 
   private setupErrorHandling(): void {
     this.fastify.setErrorHandler((error, request, reply) => {
       this.fastify.log.error(error);
-      
+
       const response: ApiResponse = {
         success: false,
         error: error.message || 'Internal server error',
@@ -222,16 +246,19 @@ class APIServer {
   }
 
   // Route handlers
-  private async addMemory(request: AuthenticatedRequest, reply: FastifyReply): Promise<ApiResponse> {
+  private async addMemory(
+    request: AuthenticatedRequest,
+    reply: FastifyReply
+  ): Promise<ApiResponse> {
     const { title, content, memory_type, importance, tags, entity_ids } = request.body as any;
-    
+
     const result = await this.memoryCore!.addMemory(
       title,
       content,
-      memory_type as MemoryType || MemoryType.MEMORY,
+      (memory_type as MemoryType) || MemoryType.MEMORY,
       {
         userId: request.user!.id,
-        importance: importance as ImportanceLevel || ImportanceLevel.MEDIUM,
+        importance: (importance as ImportanceLevel) || ImportanceLevel.MEDIUM,
         tags,
         entityIds: entity_ids,
       }
@@ -245,10 +272,13 @@ class APIServer {
     };
   }
 
-  private async searchMemories(request: AuthenticatedRequest, reply: FastifyReply): Promise<ApiResponse> {
+  private async searchMemories(
+    request: AuthenticatedRequest,
+    reply: FastifyReply
+  ): Promise<ApiResponse> {
     const { query, limit, threshold, memory_types } = request.query as any;
-    
-    const memoryTypesArray = memory_types 
+
+    const memoryTypesArray = memory_types
       ? memory_types.split(',').map((t: string) => t.trim() as MemoryType)
       : undefined;
 
@@ -268,7 +298,10 @@ class APIServer {
     };
   }
 
-  private async getMemories(request: AuthenticatedRequest, reply: FastifyReply): Promise<ApiResponse> {
+  private async getMemories(
+    request: AuthenticatedRequest,
+    reply: FastifyReply
+  ): Promise<ApiResponse> {
     // TODO: Implement get memories in MemoryCore
     return {
       success: false,
@@ -276,18 +309,17 @@ class APIServer {
     };
   }
 
-  private async createEntity(request: AuthenticatedRequest, reply: FastifyReply): Promise<ApiResponse> {
+  private async createEntity(
+    request: AuthenticatedRequest,
+    reply: FastifyReply
+  ): Promise<ApiResponse> {
     const { name, entity_type, ...options } = request.body as any;
-    
-    const result = await this.memoryCore!.createEntity(
-      name,
-      entity_type as EntityType,
-      {
-        userId: request.user!.id,
-        ...options,
-        importance: options.importance as ImportanceLevel || ImportanceLevel.MEDIUM,
-      }
-    );
+
+    const result = await this.memoryCore!.createEntity(name, entity_type as EntityType, {
+      userId: request.user!.id,
+      ...options,
+      importance: (options.importance as ImportanceLevel) || ImportanceLevel.MEDIUM,
+    });
 
     return {
       success: result.status === 'success',
@@ -297,9 +329,12 @@ class APIServer {
     };
   }
 
-  private async searchEntities(request: AuthenticatedRequest, reply: FastifyReply): Promise<ApiResponse> {
+  private async searchEntities(
+    request: AuthenticatedRequest,
+    reply: FastifyReply
+  ): Promise<ApiResponse> {
     const { query, limit } = request.query as any;
-    
+
     const result = await this.memoryCore!.searchEntities(query, {
       userId: request.user!.id,
       limit: limit ? parseInt(limit) : 10,
@@ -313,7 +348,10 @@ class APIServer {
     };
   }
 
-  private async getEntities(request: AuthenticatedRequest, reply: FastifyReply): Promise<ApiResponse> {
+  private async getEntities(
+    request: AuthenticatedRequest,
+    reply: FastifyReply
+  ): Promise<ApiResponse> {
     // TODO: Implement get entities in MemoryCore
     return {
       success: false,
@@ -321,14 +359,17 @@ class APIServer {
     };
   }
 
-  private async unifiedSearch(request: AuthenticatedRequest, reply: FastifyReply): Promise<ApiResponse> {
+  private async unifiedSearch(
+    request: AuthenticatedRequest,
+    reply: FastifyReply
+  ): Promise<ApiResponse> {
     const { query, limit, threshold, memory_types, entity_types } = request.query as any;
-    
-    const memoryTypesArray = memory_types 
+
+    const memoryTypesArray = memory_types
       ? memory_types.split(',').map((t: string) => t.trim() as MemoryType)
       : undefined;
-    
-    const entityTypesArray = entity_types 
+
+    const entityTypesArray = entity_types
       ? entity_types.split(',').map((t: string) => t.trim() as EntityType)
       : undefined;
 
@@ -349,7 +390,10 @@ class APIServer {
     };
   }
 
-  private async getStatistics(request: AuthenticatedRequest, reply: FastifyReply): Promise<ApiResponse> {
+  private async getStatistics(
+    request: AuthenticatedRequest,
+    reply: FastifyReply
+  ): Promise<ApiResponse> {
     const result = await this.memoryCore!.getStatistics(request.user!.id);
 
     return {
@@ -362,7 +406,7 @@ class APIServer {
 
   private async createUser(request: FastifyRequest, reply: FastifyReply): Promise<ApiResponse> {
     const userData = request.body as any;
-    
+
     const result = await this.memoryCore!.createUser(userData);
 
     return {
@@ -401,9 +445,9 @@ class APIServer {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
   const host = process.env.HOST || '0.0.0.0';
-  
+
   const server = new APIServer(port, host);
-  
+
   // Graceful shutdown
   process.on('SIGINT', async () => {
     console.log('Received SIGINT, shutting down gracefully...');
@@ -417,7 +461,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(0);
   });
 
-  server.start().catch((error) => {
+  server.start().catch(error => {
     console.error('Failed to start API server:', error);
     process.exit(1);
   });

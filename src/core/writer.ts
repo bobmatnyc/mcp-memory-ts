@@ -225,7 +225,7 @@ export class AsyncMemoryWriter {
 
     try {
       const memoryData = item.memoryData;
-      
+
       // Write to database using memory core
       const result = await this.memoryCore.addMemory(
         memoryData.title || '',
@@ -282,7 +282,9 @@ export class AsyncMemoryWriter {
     await this.buffer.scheduleRetry(item, delay / 1000); // Convert to seconds
     this.stats.writesRetried++;
 
-    console.info(`Scheduled retry for ${item.id} in ${delay}ms (attempt ${item.attempts + 1}/${this.maxRetries})`);
+    console.info(
+      `Scheduled retry for ${item.id} in ${delay}ms (attempt ${item.attempts + 1}/${this.maxRetries})`
+    );
   }
 
   private async handlePermanentFailure(item: MemoryBufferItem): Promise<void> {
@@ -311,7 +313,7 @@ export class AsyncMemoryWriter {
    */
   async getStats(): Promise<WriterStats> {
     const bufferMetrics = await this.buffer.getMetrics();
-    
+
     return {
       ...this.stats,
       circuitBreakerState: this.circuitBreaker.getState(),

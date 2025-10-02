@@ -88,6 +88,11 @@ temp/
 *.backup
 .vercel
 
+# Temporary documentation and test files
+*-SUMMARY.md
+*-FIXES*.md
+*test-*.sh
+
 # Added by Claude MPM /mpm-init
 $RECYCLE.BIN/
 *$py.class

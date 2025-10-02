@@ -47,10 +47,7 @@ export class DatabaseOperations {
     const hashedKey = ApiKeySecurity.hashApiKey(apiKey);
 
     // Query using api_key_hash column (the actual column in the database)
-    const result = await this.db.execute(
-      'SELECT * FROM users WHERE api_key_hash = ?',
-      [hashedKey]
-    );
+    const result = await this.db.execute('SELECT * FROM users WHERE api_key_hash = ?', [hashedKey]);
 
     return result.rows.length > 0 ? this.mapRowToUser(result.rows[0] as any) : null;
   }
@@ -61,16 +58,24 @@ export class DatabaseOperations {
 
     for (const [key, value] of Object.entries(updates)) {
       if (key === 'id' || value === undefined) continue;
-      
-      const dbKey = key === 'isActive' ? 'is_active' :
-                   key === 'apiKey' ? 'api_key_hash' :  // Use api_key_hash for new schema
-                   key === 'oauthProvider' ? 'oauth_provider' :
-                   key === 'oauthId' ? 'oauth_id' :
-                   key === 'createdAt' ? 'created_at' :
-                   key === 'updatedAt' ? 'updated_at' : key;
-      
+
+      const dbKey =
+        key === 'isActive'
+          ? 'is_active'
+          : key === 'apiKey'
+            ? 'api_key_hash' // Use api_key_hash for new schema
+            : key === 'oauthProvider'
+              ? 'oauth_provider'
+              : key === 'oauthId'
+                ? 'oauth_id'
+                : key === 'createdAt'
+                  ? 'created_at'
+                  : key === 'updatedAt'
+                    ? 'updated_at'
+                    : key;
+
       fields.push(`${dbKey} = ?`);
-      
+
       if (key === 'metadata') {
         values.push(stringifyMetadata(value as Record<string, unknown>));
       } else if (key === 'isActive') {
@@ -89,10 +94,7 @@ export class DatabaseOperations {
     values.push(new Date().toISOString());
     values.push(id);
 
-    await this.db.execute(
-      `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
-      values
-    );
+    await this.db.execute(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, values);
 
     return this.getUserById(id);
   }
@@ -131,8 +133,12 @@ export class DatabaseOperations {
       mappedEntity.title || null,
       mappedEntity.contact_info || null, // Stores email/phone/address as JSON
       mappedEntity.notes || null,
-      typeof mappedEntity.tags === 'string' ? mappedEntity.tags : JSON.stringify(sanitizeTags(mappedEntity.tags)),
-      typeof mappedEntity.metadata === 'string' ? mappedEntity.metadata : stringifyMetadata(mappedEntity.metadata),
+      typeof mappedEntity.tags === 'string'
+        ? mappedEntity.tags
+        : JSON.stringify(sanitizeTags(mappedEntity.tags)),
+      typeof mappedEntity.metadata === 'string'
+        ? mappedEntity.metadata
+        : stringifyMetadata(mappedEntity.metadata),
       mappedEntity.active !== undefined ? (mappedEntity.active ? 1 : 0) : 1,
       mappedEntity.created_at || mappedEntity.createdAt || new Date().toISOString(),
       mappedEntity.updated_at || mappedEntity.updatedAt || new Date().toISOString(),
@@ -155,13 +161,16 @@ export class DatabaseOperations {
   }
 
   async searchEntities(userId: string, query: string, limit = 10): Promise<Entity[]> {
-    const result = await this.db.execute(`
+    const result = await this.db.execute(
+      `
       SELECT e.* FROM entities e
       JOIN entities_fts fts ON e.id = fts.rowid
       WHERE e.user_id = ? AND entities_fts MATCH ?
       ORDER BY rank LIMIT ?
-    `, [userId, query, limit]);
-    
+    `,
+      [userId, query, limit]
+    );
+
     return result.rows.map(row => this.mapRowToEntity(row as any));
   }
 
@@ -188,11 +197,23 @@ export class DatabaseOperations {
       mappedMemory.content,
       mappedMemory.memory_type || mappedMemory.memoryType,
       mappedMemory.importance,
-      typeof mappedMemory.tags === 'string' ? mappedMemory.tags : JSON.stringify(sanitizeTags(mappedMemory.tags)),
-      typeof mappedMemory.entity_ids === 'string' ? mappedMemory.entity_ids : JSON.stringify(mappedMemory.entity_ids || mappedMemory.entityIds || []),
-      typeof mappedMemory.embedding === 'string' ? mappedMemory.embedding : JSON.stringify(mappedMemory.embedding || []),
-      typeof mappedMemory.metadata === 'string' ? mappedMemory.metadata : stringifyMetadata(mappedMemory.metadata),
-      mappedMemory.is_archived !== undefined ? mappedMemory.is_archived : (mappedMemory.isArchived ? 1 : 0),
+      typeof mappedMemory.tags === 'string'
+        ? mappedMemory.tags
+        : JSON.stringify(sanitizeTags(mappedMemory.tags)),
+      typeof mappedMemory.entity_ids === 'string'
+        ? mappedMemory.entity_ids
+        : JSON.stringify(mappedMemory.entity_ids || mappedMemory.entityIds || []),
+      typeof mappedMemory.embedding === 'string'
+        ? mappedMemory.embedding
+        : JSON.stringify(mappedMemory.embedding || []),
+      typeof mappedMemory.metadata === 'string'
+        ? mappedMemory.metadata
+        : stringifyMetadata(mappedMemory.metadata),
+      mappedMemory.is_archived !== undefined
+        ? mappedMemory.is_archived
+        : mappedMemory.isArchived
+          ? 1
+          : 0,
       mappedMemory.active !== undefined ? mappedMemory.active : 1,
       mappedMemory.created_at || mappedMemory.createdAt || new Date().toISOString(),
       mappedMemory.updated_at || mappedMemory.updatedAt || new Date().toISOString(),
@@ -217,7 +238,10 @@ export class DatabaseOperations {
   async searchMemories(userId: string, query: string, limit = 10): Promise<Memory[]> {
     try {
       // Tokenize query into words for multi-word search
-      const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+      const words = query
+        .trim()
+        .split(/\s+/)
+        .filter(w => w.length > 0);
 
       if (words.length === 0) {
         return [];
@@ -225,7 +249,8 @@ export class DatabaseOperations {
 
       // For single word, search in title, content, AND metadata
       if (words.length === 1) {
-        const result = await this.db.execute(`
+        const result = await this.db.execute(
+          `
           SELECT * FROM memories
           WHERE user_id = ? AND is_archived = 0
           AND (
@@ -238,30 +263,39 @@ export class DatabaseOperations {
           )
           ORDER BY updated_at DESC
           LIMIT ?
-        `, [userId, `%${words[0]}%`, `%${words[0]}%`, `%${words[0]}%`, limit]);
+        `,
+          [userId, `%${words[0]}%`, `%${words[0]}%`, `%${words[0]}%`, limit]
+        );
 
         return result.rows.map(row => this.mapRowToMemory(row as any));
       }
 
       // For multiple words, use OR logic to find memories containing ANY of the words
       // Search across title, content, AND metadata
-      const conditions = words.map(() => `(
+      const conditions = words
+        .map(
+          () => `(
         LOWER(title) LIKE LOWER(?) OR
         LOWER(content) LIKE LOWER(?) OR
         (metadata IS NOT NULL AND json_valid(metadata) AND EXISTS (
           SELECT 1 FROM json_each(metadata)
           WHERE LOWER(json_each.value) LIKE LOWER(?)
         ))
-      )`).join(' OR ');
+      )`
+        )
+        .join(' OR ');
       const params = words.flatMap(w => [`%${w}%`, `%${w}%`, `%${w}%`]);
 
-      const result = await this.db.execute(`
+      const result = await this.db.execute(
+        `
         SELECT * FROM memories
         WHERE user_id = ? AND is_archived = 0
         AND (${conditions})
         ORDER BY updated_at DESC
         LIMIT ?
-      `, [userId, ...params, limit]);
+      `,
+        [userId, ...params, limit]
+      );
 
       return result.rows.map(row => this.mapRowToMemory(row as any));
     } catch (error) {

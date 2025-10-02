@@ -40,8 +40,12 @@ export class EmbeddingService {
    */
   async generateEmbedding(text: string, userId?: string): Promise<number[]> {
     if (!this.openai) {
-      console.warn('[EmbeddingService] ⚠️  OpenAI client not initialized - skipping embedding generation');
-      console.warn('[EmbeddingService] 💡 Set OPENAI_API_KEY environment variable to enable embeddings');
+      console.warn(
+        '[EmbeddingService] ⚠️  OpenAI client not initialized - skipping embedding generation'
+      );
+      console.warn(
+        '[EmbeddingService] 💡 Set OPENAI_API_KEY environment variable to enable embeddings'
+      );
       return [];
     }
 
@@ -54,7 +58,9 @@ export class EmbeddingService {
       const trimmedText = text.trim();
       const startTime = Date.now();
 
-      console.error(`[EmbeddingService] 🔄 Generating embedding for text (${trimmedText.length} chars)...`);
+      console.error(
+        `[EmbeddingService] 🔄 Generating embedding for text (${trimmedText.length} chars)...`
+      );
 
       const response = await this.openai.embeddings.create({
         model: this.model,
@@ -67,20 +73,24 @@ export class EmbeddingService {
         console.error('[EmbeddingService] ❌ OpenAI returned invalid embedding:', {
           hasEmbedding: !!embedding,
           isArray: Array.isArray(embedding),
-          length: embedding?.length || 0
+          length: embedding?.length || 0,
         });
         throw new Error('OpenAI API returned invalid or empty embedding');
       }
 
       // Validate expected dimensions for text-embedding-3-small (1536)
       if (embedding.length !== 1536) {
-        console.warn(`[EmbeddingService] ⚠️  Unexpected embedding dimensions: ${embedding.length} (expected 1536 for ${this.model})`);
+        console.warn(
+          `[EmbeddingService] ⚠️  Unexpected embedding dimensions: ${embedding.length} (expected 1536 for ${this.model})`
+        );
       }
 
       // Validate that all values are numbers
       const hasInvalidValues = embedding.some(val => typeof val !== 'number' || !isFinite(val));
       if (hasInvalidValues) {
-        console.error('[EmbeddingService] ❌ Embedding contains invalid values (non-numeric or infinite)');
+        console.error(
+          '[EmbeddingService] ❌ Embedding contains invalid values (non-numeric or infinite)'
+        );
         throw new Error('Generated embedding contains invalid values');
       }
 
@@ -90,7 +100,7 @@ export class EmbeddingService {
 
       console.error(
         `[EmbeddingService] ✅ Successfully generated embedding: ${embedding.length} dimensions, ` +
-        `${tokensUsed} tokens, $${cost.toFixed(6)}, ${duration}ms`
+          `${tokensUsed} tokens, $${cost.toFixed(6)}, ${duration}ms`
       );
 
       // Track usage if tracker is available and userId is provided
@@ -99,7 +109,7 @@ export class EmbeddingService {
           userId,
           tokensUsed,
           cost,
-          duration
+          duration,
         }).catch(err => {
           console.error('[EmbeddingService] ⚠️  Failed to record usage:', err);
         });
@@ -112,7 +122,9 @@ export class EmbeddingService {
       // Add more specific error messages
       if (error instanceof Error) {
         if (error.message.includes('API key')) {
-          console.error('[EmbeddingService] 🔑 API Key issue - check OPENAI_API_KEY environment variable');
+          console.error(
+            '[EmbeddingService] 🔑 API Key issue - check OPENAI_API_KEY environment variable'
+          );
         } else if (error.message.includes('rate limit')) {
           console.error('[EmbeddingService] ⏱️  Rate limit exceeded - please wait and retry');
         } else if (error.message.includes('timeout')) {
@@ -120,7 +132,9 @@ export class EmbeddingService {
         }
       }
 
-      throw new Error(`Embedding generation failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Embedding generation failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -153,7 +167,7 @@ export class EmbeddingService {
 
       console.error(
         `[EmbeddingService] ✅ Generated ${embeddings.length} embeddings: ` +
-        `${tokensUsed} tokens, $${cost.toFixed(6)}, ${duration}ms`
+          `${tokensUsed} tokens, $${cost.toFixed(6)}, ${duration}ms`
       );
 
       // Track usage if tracker is available and userId is provided
@@ -163,7 +177,7 @@ export class EmbeddingService {
           tokensUsed,
           cost,
           duration,
-          batchSize: validTexts.length
+          batchSize: validTexts.length,
         }).catch(err => {
           console.error('[EmbeddingService] ⚠️  Failed to record usage:', err);
         });
@@ -284,10 +298,7 @@ export class EmbeddingService {
     tags?: string[];
     memoryType?: string;
   }): string {
-    const parts = [
-      memory.title,
-      memory.content,
-    ];
+    const parts = [memory.title, memory.content];
 
     if (memory.memoryType) {
       parts.push(`Type: ${memory.memoryType}`);
@@ -440,8 +451,8 @@ export class EmbeddingService {
         date: new Date().toISOString().split('T')[0],
         metadata: {
           duration: params.duration,
-          batchSize: params.batchSize || 1
-        }
+          batchSize: params.batchSize || 1,
+        },
       });
     } catch (error) {
       console.error('[EmbeddingService] ⚠️  Failed to record usage:', error);

@@ -122,17 +122,7 @@ The remote MCP server will be available at `http://localhost:3003` with:
 - **Endpoints**: `/mcp` (main), `/health`
 - **Test Coverage**: 95.2% pass rate (20/21 tests)
 
-#### OAuth Documentation
-
-Complete OAuth setup and integration guides:
-
-- **[OAuth Setup Guide](./OAUTH_SETUP.md)** - Architecture, security, and user isolation
-- **[Quick Start Guide](./OAUTH_QUICKSTART.md)** - Get started in 5 minutes
-- **[API Reference](./OAUTH_API_REFERENCE.md)** - Complete API documentation
-- **[Deployment Guide](./OAUTH_DEPLOYMENT.md)** - Deploy to production
-- **[Client Integration](./OAUTH_CLIENT_INTEGRATION.md)** - Next.js, React, React Native examples
-
-#### Quick OAuth Setup
+#### OAuth Setup
 
 1. **Get Clerk credentials** from [dashboard.clerk.com](https://dashboard.clerk.com/)
 
@@ -160,7 +150,7 @@ Complete OAuth setup and integration guides:
      -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
    ```
 
-See [OAUTH_QUICKSTART.md](./OAUTH_QUICKSTART.md) for detailed setup instructions.
+See [docs/REMOTE_MCP_SETUP.md](./docs/REMOTE_MCP_SETUP.md) for detailed setup instructions.
 
 ### REST API Server
 
@@ -203,25 +193,38 @@ The project includes comprehensive test coverage:
 - **E2E Tests**: Complete workflows and Claude Desktop integration
 - **Test Results**: 95.2% pass rate (20/21 tests passing)
 
-See [TEST-REPORT.md](./TEST-REPORT.md) for detailed test results.
+See [docs/testing/QA_TEST_REPORT.md](./docs/testing/QA_TEST_REPORT.md) for detailed test results.
 
 ## Documentation
 
 ### Core Documentation
 - [CLAUDE.md](./CLAUDE.md) - Project instructions and architecture
-- [DEPLOYMENT.md](./DEPLOYMENT.md) - Deployment guide
-- [CONFIGURATION_SUMMARY.md](./CONFIGURATION_SUMMARY.md) - Environment configuration
+- [README.md](./README.md) - This file (project overview)
 
-### OAuth Authentication
-- [OAUTH_SETUP.md](./OAUTH_SETUP.md) - OAuth architecture and security
-- [OAUTH_QUICKSTART.md](./OAUTH_QUICKSTART.md) - 5-minute setup guide
-- [OAUTH_API_REFERENCE.md](./OAUTH_API_REFERENCE.md) - Complete API reference
-- [OAUTH_DEPLOYMENT.md](./OAUTH_DEPLOYMENT.md) - Production deployment
-- [OAUTH_CLIENT_INTEGRATION.md](./OAUTH_CLIENT_INTEGRATION.md) - Client integration examples
+### Guides
+- [Deployment Guide](./DEPLOYMENT.md) - Production deployment
+- [CLI Guide](./docs/guides/CLI-GUIDE.md) - Command-line interface
+- [Migration Guide](./docs/guides/MIGRATION_QUICK_START.md) - Schema migrations
 
-### Testing & Verification
-- [TEST-REPORT.md](./TEST-REPORT.md) - 95.2% test coverage report
-- [VERIFICATION_CHECKLIST.md](./VERIFICATION_CHECKLIST.md) - Deployment checklist
+### Schema & Database
+- [Schema Optimization](./docs/schema/SCHEMA_OPTIMIZATION_GUIDE.md) - Database design
+- [Schema Analysis](./docs/schema/DATABASE_SCHEMA_ANALYSIS.md) - Database structure
+
+### Testing & Quality
+- [Verification Checklist](./docs/testing/VERIFICATION-CHECKLIST.md) - Deployment checklist
+- [Migration Tests](./docs/testing/MIGRATION_TEST_REPORT.md) - Migration test results
+- [QA Test Report](./docs/testing/QA_TEST_REPORT.md) - Quality assurance results
+
+### Additional Documentation
+- [docs/](./docs/) - Complete documentation library
+  - API Server Setup
+  - Claude Desktop Usage
+  - Cost Tracking
+  - Features Documentation
+  - Remote MCP Setup
+  - Testing Guides
+  - Unified Architecture
+  - Vercel Deployment
 
 ## License
 
@@ -247,5 +250,5 @@ The test suite validates:
 
 Expected results: **17/17 tests passed, 5/5 production criteria met**
 
-See [TEST_RESULTS.md](./TEST_RESULTS.md) for detailed test results and analysis.
+See [docs/testing/](./docs/testing/) for detailed test results and analysis.
 

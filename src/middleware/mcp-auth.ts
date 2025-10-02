@@ -3,7 +3,12 @@
  * Handles Clerk OAuth authentication for remote MCP server
  */
 
-import { clerkClient } from '@clerk/clerk-sdk-node';
+import { createClerkClient } from '@clerk/backend';
+
+// Initialize Clerk client with secret key
+const clerkClient = createClerkClient({
+  secretKey: process.env.CLERK_SECRET_KEY!,
+});
 
 export interface AuthenticatedUser {
   userId: string;
@@ -109,7 +114,7 @@ export async function verifyClerkToken(token: string): Promise<AuthenticatedUser
     const sessionToken = token.replace('Bearer ', '').trim();
 
     // Verify the token and get session
-    const session = await clerkClient.sessions.verifySession(sessionToken, sessionToken);
+    const session = await clerkClient.sessions.getSession(sessionToken);
 
     if (!session || !session.userId) {
       console.error('[MCP Auth] Invalid session token');
@@ -125,9 +130,7 @@ export async function verifyClerkToken(token: string): Promise<AuthenticatedUser
     }
 
     // Extract primary email
-    const primaryEmail = user.emailAddresses.find(
-      email => email.id === user.primaryEmailAddressId
-    );
+    const primaryEmail = user.emailAddresses.find(email => email.id === user.primaryEmailAddressId);
 
     if (!primaryEmail) {
       console.error('[MCP Auth] No primary email found for user');

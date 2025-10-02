@@ -58,7 +58,7 @@ export class UsageTrackingDB {
         record.operationType,
         record.timestamp,
         record.date,
-        record.metadata ? JSON.stringify(record.metadata) : null
+        record.metadata ? JSON.stringify(record.metadata) : null,
       ]
     );
 
@@ -83,7 +83,7 @@ export class UsageTrackingDB {
     const usage: DailyUsageSummary = {
       openai: { tokens: 0, cost: 0, requests: 0 },
       openrouter: { tokens: 0, cost: 0, requests: 0 },
-      total: { tokens: 0, cost: 0, requests: 0 }
+      total: { tokens: 0, cost: 0, requests: 0 },
     };
 
     for (const row of results.rows) {
@@ -128,7 +128,7 @@ export class UsageTrackingDB {
       provider: row.api_provider,
       tokens: Number(row.daily_tokens) || 0,
       cost: Number(row.daily_cost) || 0,
-      requests: Number(row.daily_requests) || 0
+      requests: Number(row.daily_requests) || 0,
     }));
   }
 
@@ -150,7 +150,7 @@ export class UsageTrackingDB {
     const usage: DailyUsageSummary = {
       openai: { tokens: 0, cost: 0, requests: 0 },
       openrouter: { tokens: 0, cost: 0, requests: 0 },
-      total: { tokens: 0, cost: 0, requests: 0 }
+      total: { tokens: 0, cost: 0, requests: 0 },
     };
 
     for (const row of results.rows) {
@@ -195,7 +195,7 @@ export class UsageTrackingDB {
     const usage: DailyUsageSummary = {
       openai: { tokens: 0, cost: 0, requests: 0 },
       openrouter: { tokens: 0, cost: 0, requests: 0 },
-      total: { tokens: 0, cost: 0, requests: 0 }
+      total: { tokens: 0, cost: 0, requests: 0 },
     };
 
     for (const row of results.rows) {

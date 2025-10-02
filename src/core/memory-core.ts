@@ -34,7 +34,11 @@ export class MemoryCore {
   protected defaultUserId: string | null = null;
   protected autoUpdateEmbeddings: boolean = true;
 
-  constructor(db: DatabaseConnection, openaiApiKey?: string, options: { autoUpdateEmbeddings?: boolean } = {}) {
+  constructor(
+    db: DatabaseConnection,
+    openaiApiKey?: string,
+    options: { autoUpdateEmbeddings?: boolean } = {}
+  ) {
     this.db = db;
     this.dbOps = new DatabaseOperations(db);
     // Pass database connection to enable usage tracking
@@ -57,8 +61,8 @@ export class MemoryCore {
    */
   async initialize(): Promise<void> {
     await this.db.connect();
-    // Skip schema initialization for existing database
-    // await initializeSchema(this.db);
+    // Initialize schema for new databases (idempotent - uses CREATE TABLE IF NOT EXISTS)
+    await initializeSchema(this.db);
 
     // Set up default user if specified in environment
     const defaultEmail = process.env.DEFAULT_USER_EMAIL || process.env.MCP_DEFAULT_USER_EMAIL;
@@ -78,7 +82,7 @@ export class MemoryCore {
    */
   private async ensureDefaultUser(email: string): Promise<void> {
     let user = await this.dbOps.getUserByEmail(email);
-    
+
     if (!user) {
       user = createUser({
         email,
@@ -87,7 +91,7 @@ export class MemoryCore {
       });
       await this.dbOps.createUser(user);
     }
-    
+
     this.defaultUserId = user.id;
   }
 
@@ -106,10 +110,10 @@ export class MemoryCore {
       if (userData.apiKey) {
         userData.apiKey = await hashApiKey(userData.apiKey);
       }
-      
+
       const user = createUser(userData);
       await this.dbOps.createUser(user);
-      
+
       return {
         status: MCPToolResultStatus.SUCCESS,
         message: 'User created successfully',
@@ -148,7 +152,8 @@ export class MemoryCore {
 
       // Validate importance if provided
       if (options.importance !== undefined) {
-        const importance = typeof options.importance === 'number' ? options.importance : options.importance;
+        const importance =
+          typeof options.importance === 'number' ? options.importance : options.importance;
         if (importance < 0.0 || importance > 1.0) {
           return {
             status: MCPToolResultStatus.ERROR,
@@ -173,16 +178,25 @@ export class MemoryCore {
           // Only use embedding if it's valid (non-empty array with proper dimensions)
           if (generatedEmbedding && generatedEmbedding.length > 0) {
             embedding = generatedEmbedding;
-            console.error(`[MemoryCore] ✅ Generated embedding with ${embedding.length} dimensions for memory "${title}"`);
+            console.error(
+              `[MemoryCore] ✅ Generated embedding with ${embedding.length} dimensions for memory "${title}"`
+            );
           } else {
-            console.warn(`[MemoryCore] ⚠️  Empty embedding returned for memory "${title}" - will queue for retry`);
+            console.warn(
+              `[MemoryCore] ⚠️  Empty embedding returned for memory "${title}" - will queue for retry`
+            );
           }
         } catch (error) {
-          console.error(`[MemoryCore] ❌ Failed to generate embedding for memory "${title}":`, error);
+          console.error(
+            `[MemoryCore] ❌ Failed to generate embedding for memory "${title}":`,
+            error
+          );
           // Continue without embedding - it will be queued for retry by embedding updater
         }
       } else {
-        console.error(`[MemoryCore] ⏭️  Skipping embedding generation for memory "${title}" (disabled by options)`);
+        console.error(
+          `[MemoryCore] ⏭️  Skipping embedding generation for memory "${title}" (disabled by options)`
+        );
       }
 
       const memory = createMemory({
@@ -190,7 +204,7 @@ export class MemoryCore {
         title,
         content,
         memoryType: memoryType as any,
-        importance: options.importance !== undefined ? options.importance as any : 0.5,
+        importance: options.importance !== undefined ? (options.importance as any) : 0.5,
         tags: options.tags,
         entityIds: options.entityIds,
         metadata: options.metadata,
@@ -201,16 +215,24 @@ export class MemoryCore {
 
       // Queue for embedding update if auto-update is enabled and no valid embedding was generated
       if (this.embeddingUpdater && (!embedding || embedding.length === 0)) {
-        console.error(`[MemoryCore] 🔄 Queuing memory ${savedMemory.id} for embedding update (${!embedding ? 'no embedding' : 'empty embedding'})`);
+        console.error(
+          `[MemoryCore] 🔄 Queuing memory ${savedMemory.id} for embedding update (${!embedding ? 'no embedding' : 'empty embedding'})`
+        );
         this.embeddingUpdater.queueMemoryUpdate(savedMemory.id as string);
       } else if (!embedding || embedding.length === 0) {
-        console.warn(`[MemoryCore] ⚠️  Memory ${savedMemory.id} saved without embedding and no updater available`);
+        console.warn(
+          `[MemoryCore] ⚠️  Memory ${savedMemory.id} saved without embedding and no updater available`
+        );
       }
 
       return {
         status: MCPToolResultStatus.SUCCESS,
         message: 'Memory added successfully',
-        data: { id: savedMemory.id, title: savedMemory.title, hasEmbedding: !!(embedding && embedding.length > 0) },
+        data: {
+          id: savedMemory.id,
+          title: savedMemory.title,
+          hasEmbedding: !!(embedding && embedding.length > 0),
+        },
       };
     } catch (error) {
       return {
@@ -248,12 +270,7 @@ export class MemoryCore {
             LIMIT ?
           `;
 
-          const result = await this.db.execute(sql, [
-            userId,
-            `$.${field}`,
-            trimmedValue,
-            limit
-          ]);
+          const result = await this.db.execute(sql, [userId, `$.${field}`, trimmedValue, limit]);
 
           const metadataResults = result.rows.map(row =>
             SchemaCompatibility.mapMemoryFromDatabase(row as any)
@@ -302,7 +319,9 @@ export class MemoryCore {
           vectorSearchUsed = true;
 
           if (process.env.MCP_DEBUG) {
-            console.error(`[SearchMemories] Vector search returned ${vectorResults.length} results (threshold: ${options.threshold !== undefined ? options.threshold : defaultThreshold})`);
+            console.error(
+              `[SearchMemories] Vector search returned ${vectorResults.length} results (threshold: ${options.threshold !== undefined ? options.threshold : defaultThreshold})`
+            );
           }
         } catch (error) {
           vectorSearchError = String(error);
@@ -327,11 +346,7 @@ export class MemoryCore {
       // 1. NOT using pure vector search (similarity strategy)
       // 2. Vector search didn't return enough results OR vector search failed
       if (!usePureVectorSearch && (vectorResults.length < limit || vectorSearchError)) {
-        textResults = await this.dbOps.searchMemories(
-          userId,
-          query,
-          limit - vectorResults.length
-        );
+        textResults = await this.dbOps.searchMemories(userId, query, limit - vectorResults.length);
         textSearchUsed = textResults.length > 0;
 
         if (process.env.MCP_DEBUG) {
@@ -384,17 +399,14 @@ export class MemoryCore {
     }
   }
 
-  async getMemory(
-    memoryId: string,
-    options: { userId?: string } = {}
-  ): Promise<MCPToolResult> {
+  async getMemory(memoryId: string, options: { userId?: string } = {}): Promise<MCPToolResult> {
     try {
       const userId = this.getUserId(options.userId);
 
-      const result = await this.db.execute(
-        'SELECT * FROM memories WHERE id = ? AND user_id = ?',
-        [memoryId, userId]
-      );
+      const result = await this.db.execute('SELECT * FROM memories WHERE id = ? AND user_id = ?', [
+        memoryId,
+        userId,
+      ]);
 
       if (result.rows.length === 0) {
         return {
@@ -437,7 +449,8 @@ export class MemoryCore {
 
       // Validate importance if provided
       if (updates.importance !== undefined) {
-        const importance = typeof updates.importance === 'number' ? updates.importance : updates.importance;
+        const importance =
+          typeof updates.importance === 'number' ? updates.importance : updates.importance;
         if (importance < 0.0 || importance > 1.0) {
           return {
             status: MCPToolResultStatus.ERROR,
@@ -498,16 +511,26 @@ export class MemoryCore {
 
       // Queue for embedding regeneration if content or tags changed
       if (this.embeddingUpdater && (updates.content || updates.title || updates.tags)) {
-        console.error(`[MemoryCore] 🔄 Queuing memory ${memoryId} for embedding regeneration (content/title/tags changed)`);
+        console.error(
+          `[MemoryCore] 🔄 Queuing memory ${memoryId} for embedding regeneration (content/title/tags changed)`
+        );
         this.embeddingUpdater.queueMemoryUpdate(memoryId);
       } else if ((updates.content || updates.title || updates.tags) && !this.embeddingUpdater) {
-        console.warn(`[MemoryCore] ⚠️  Memory ${memoryId} content changed but no embedding updater available`);
+        console.warn(
+          `[MemoryCore] ⚠️  Memory ${memoryId} content changed but no embedding updater available`
+        );
       }
 
       return {
         status: MCPToolResultStatus.SUCCESS,
         message: 'Memory updated successfully',
-        data: { id: memoryId, embeddingUpdateQueued: !!(this.embeddingUpdater && (updates.content || updates.title || updates.tags)) },
+        data: {
+          id: memoryId,
+          embeddingUpdateQueued: !!(
+            this.embeddingUpdater &&
+            (updates.content || updates.title || updates.tags)
+          ),
+        },
       };
     } catch (error) {
       return {
@@ -518,10 +541,7 @@ export class MemoryCore {
     }
   }
 
-  async deleteMemory(
-    memoryId: string,
-    options: { userId?: string } = {}
-  ): Promise<MCPToolResult> {
+  async deleteMemory(memoryId: string, options: { userId?: string } = {}): Promise<MCPToolResult> {
     try {
       const userId = this.getUserId(options.userId);
 
@@ -531,10 +551,10 @@ export class MemoryCore {
         return existingResult;
       }
 
-      await this.db.execute(
-        'DELETE FROM memories WHERE id = ? AND user_id = ?',
-        [memoryId, userId]
-      );
+      await this.db.execute('DELETE FROM memories WHERE id = ? AND user_id = ?', [
+        memoryId,
+        userId,
+      ]);
 
       return {
         status: MCPToolResultStatus.SUCCESS,
@@ -597,13 +617,13 @@ export class MemoryCore {
           const newer = memA.temporalDecay > memB.temporalDecay ? memA : memB;
           const older = memA.temporalDecay > memB.temporalDecay ? memB : memA;
 
-          const olderImportance = typeof older.memory.importance === 'number'
-            ? older.memory.importance : 0.5;
+          const olderImportance =
+            typeof older.memory.importance === 'number' ? older.memory.importance : 0.5;
 
           // Semantic boost: newer linked memories get a boost from important older memories
           newer.semanticBoost = Math.max(
             newer.semanticBoost,
-            olderImportance * 0.3 * sharedTags.length / Math.max(tagsA.length, tagsB.length)
+            (olderImportance * 0.3 * sharedTags.length) / Math.max(tagsA.length, tagsB.length)
           );
         }
       }
@@ -618,8 +638,10 @@ export class MemoryCore {
       case 'frequency':
         // Sort by importance with temporal decay factor
         memoriesWithDecay.sort((a, b) => {
-          const freqA = (typeof a.memory.importance === 'number' ? a.memory.importance : 0.5) * a.temporalDecay;
-          const freqB = (typeof b.memory.importance === 'number' ? b.memory.importance : 0.5) * b.temporalDecay;
+          const freqA =
+            (typeof a.memory.importance === 'number' ? a.memory.importance : 0.5) * a.temporalDecay;
+          const freqB =
+            (typeof b.memory.importance === 'number' ? b.memory.importance : 0.5) * b.temporalDecay;
           return freqB - freqA;
         });
         break;
@@ -697,15 +719,18 @@ export class MemoryCore {
     const vectorData = filteredMemories
       .filter(m => {
         // Strict validation: must be array with proper length (1536 for text-embedding-3-small)
-        return Array.isArray(m.embedding) && m.embedding.length > 0 &&
-               typeof m.embedding[0] === 'number';
+        return (
+          Array.isArray(m.embedding) && m.embedding.length > 0 && typeof m.embedding[0] === 'number'
+        );
       })
       .map(m => ({ vector: m.embedding!, data: m }));
 
     // Debug logging for development
     if (process.env.MCP_DEBUG) {
       console.error(`[VectorSearch] Query embedding dimensions: ${queryEmbedding.length}`);
-      console.error(`[VectorSearch] Valid memory embeddings: ${vectorData.length}/${filteredMemories.length}`);
+      console.error(
+        `[VectorSearch] Valid memory embeddings: ${vectorData.length}/${filteredMemories.length}`
+      );
       console.error(`[VectorSearch] Threshold: ${options.threshold || 0.7}`);
     }
 
@@ -718,8 +743,10 @@ export class MemoryCore {
 
     // Debug logging for results
     if (process.env.MCP_DEBUG && similarities.length > 0) {
-      console.error(`[VectorSearch] Found ${similarities.length} results with similarities:`,
-        similarities.map(s => s.similarity.toFixed(4)));
+      console.error(
+        `[VectorSearch] Found ${similarities.length} results with similarities:`,
+        similarities.map(s => s.similarity.toFixed(4))
+      );
     }
 
     return similarities.map(s => s.data);
@@ -739,7 +766,7 @@ export class MemoryCore {
   ): Promise<MCPToolResult> {
     try {
       const userId = this.getUserId(options.userId);
-      
+
       const entity = createEntity({
         userId,
         name,
@@ -795,10 +822,14 @@ export class MemoryCore {
   ): Promise<MCPToolResult> {
     try {
       const userId = this.getUserId(options.userId);
-      
+
       // Search memories and entities in parallel
       const [memoriesResult, entitiesResult] = await Promise.all([
-        this.searchMemories(query, { ...options, userId, limit: Math.ceil((options.limit || 10) / 2) }),
+        this.searchMemories(query, {
+          ...options,
+          userId,
+          limit: Math.ceil((options.limit || 10) / 2),
+        }),
         this.searchEntities(query, { userId, limit: Math.ceil((options.limit || 10) / 2) }),
       ]);
 
@@ -806,20 +837,24 @@ export class MemoryCore {
 
       if (memoriesResult.status === MCPToolResultStatus.SUCCESS && memoriesResult.data) {
         const memories = memoriesResult.data as Memory[];
-        results.push(...memories.map(m => ({
-          item: m,
-          score: 1.0, // TODO: Implement proper scoring
-          type: 'memory' as const,
-        })));
+        results.push(
+          ...memories.map(m => ({
+            item: m,
+            score: 1.0, // TODO: Implement proper scoring
+            type: 'memory' as const,
+          }))
+        );
       }
 
       if (entitiesResult.status === MCPToolResultStatus.SUCCESS && entitiesResult.data) {
         const entities = entitiesResult.data as Entity[];
-        results.push(...entities.map(e => ({
-          item: e,
-          score: 1.0, // TODO: Implement proper scoring
-          type: 'entity' as const,
-        })));
+        results.push(
+          ...entities.map(e => ({
+            item: e,
+            score: 1.0, // TODO: Implement proper scoring
+            type: 'entity' as const,
+          }))
+        );
       }
 
       // Sort by score and limit
@@ -854,21 +889,28 @@ export class MemoryCore {
       ]);
 
       const memoriesWithEmbeddings = memories.filter(m => m.embedding && m.embedding.length > 0);
-      const embeddingCoverage = memories.length > 0
-        ? Math.round((memoriesWithEmbeddings.length / memories.length) * 100)
-        : 0;
+      const embeddingCoverage =
+        memories.length > 0
+          ? Math.round((memoriesWithEmbeddings.length / memories.length) * 100)
+          : 0;
 
       const stats = {
         totalMemories: memories.length,
         totalEntities: entities.length,
-        memoriesByType: memories.reduce((acc, m) => {
-          acc[m.memoryType] = (acc[m.memoryType] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-        entitiesByType: entities.reduce((acc, e) => {
-          acc[e.entityType] = (acc[e.entityType] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
+        memoriesByType: memories.reduce(
+          (acc, m) => {
+            acc[m.memoryType] = (acc[m.memoryType] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        ),
+        entitiesByType: entities.reduce(
+          (acc, e) => {
+            acc[e.entityType] = (acc[e.entityType] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        ),
         memoriesWithEmbeddings: memoriesWithEmbeddings.length,
         embeddingCoverage: `${embeddingCoverage}%`,
         vectorSearchHealth: {
@@ -876,9 +918,10 @@ export class MemoryCore {
           memoriesWithValidEmbeddings: memoriesWithEmbeddings.length,
           memoriesWithoutEmbeddings: memories.length - memoriesWithEmbeddings.length,
           coveragePercentage: embeddingCoverage,
-          recommendation: embeddingCoverage < 90
-            ? 'Consider running updateMissingEmbeddings() to improve semantic search coverage'
-            : 'Vector search coverage is healthy',
+          recommendation:
+            embeddingCoverage < 90
+              ? 'Consider running updateMissingEmbeddings() to improve semantic search coverage'
+              : 'Vector search coverage is healthy',
         },
       };
 

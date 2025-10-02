@@ -139,13 +139,13 @@ export class MemoryBuffer {
   async getNextRetry(): Promise<MemoryBufferItem | null> {
     const now = Date.now();
     const dueIndex = this.retryQueue.findIndex(entry => entry.retryTime <= now);
-    
+
     if (dueIndex >= 0) {
       const entry = this.retryQueue.splice(dueIndex, 1)[0];
       entry.item.status = MemoryBufferStatus.RETRYING;
       return entry.item;
     }
-    
+
     return null;
   }
 
@@ -155,7 +155,7 @@ export class MemoryBuffer {
   async markCompleted(itemOrId: MemoryBufferItem | string): Promise<void> {
     const memoryId = typeof itemOrId === 'string' ? itemOrId : itemOrId.id;
     const item = this.itemsCache.get(memoryId);
-    
+
     if (item) {
       item.status = MemoryBufferStatus.COMPLETED;
       item.completedAt = Date.now();
@@ -172,7 +172,9 @@ export class MemoryBuffer {
       this.metrics.totalWriteTime += writeTime;
       this.metrics.lastWriteTime = writeTime;
 
-      console.info(`Memory ${memoryId} written successfully after ${item.attempts} attempts, ${writeTime}ms`);
+      console.info(
+        `Memory ${memoryId} written successfully after ${item.attempts} attempts, ${writeTime}ms`
+      );
 
       // Schedule cleanup
       setTimeout(() => this.cleanupItem(memoryId), 60000);
@@ -184,7 +186,7 @@ export class MemoryBuffer {
    */
   async markFailed(memoryId: string, error: string): Promise<void> {
     const item = this.itemsCache.get(memoryId);
-    
+
     if (item) {
       item.status = MemoryBufferStatus.FAILED;
       item.lastError = error;
@@ -199,7 +201,9 @@ export class MemoryBuffer {
       // Update metrics
       this.metrics.failed++;
 
-      console.error(`Memory ${memoryId} permanently failed after ${item.attempts} attempts: ${error}`);
+      console.error(
+        `Memory ${memoryId} permanently failed after ${item.attempts} attempts: ${error}`
+      );
 
       // Schedule cleanup
       setTimeout(() => this.cleanupItem(memoryId), 300000);
@@ -228,7 +232,7 @@ export class MemoryBuffer {
   async getStatus(): Promise<BufferStatus> {
     const pendingCount = this.pendingQueue.length;
     const retryCount = this.retryQueue.length;
-    
+
     // Count processing items
     let processingCount = 0;
     for (const item of this.itemsCache.values()) {
@@ -252,7 +256,7 @@ export class MemoryBuffer {
    */
   async getItemStatus(memoryId: string): Promise<Record<string, any>> {
     const item = this.itemsCache.get(memoryId);
-    
+
     if (!item) {
       // Check completed items
       const completed = this.completedItems.find(i => i.id === memoryId);
@@ -346,7 +350,9 @@ export class MemoryBuffer {
 
       this.lastPersist = Date.now();
 
-      console.debug(`Persisted buffer: ${state.pending.length} pending, ${state.retry.length} retry`);
+      console.debug(
+        `Persisted buffer: ${state.pending.length} pending, ${state.retry.length} retry`
+      );
     } catch (error) {
       console.error('Failed to persist buffer:', error);
     } finally {
