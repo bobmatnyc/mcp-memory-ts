@@ -1,3 +1,9 @@
+# Ignore all dot files and directories by default
+.*
+!/.gitignore
+!/.github
+!/.gitattributes
+
 # Dependencies
 node_modules/
 npm-debug.log*
