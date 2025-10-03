@@ -137,9 +137,9 @@ async function main() {
     console.log('STEP 2: Verifying embeddings were generated');
     console.log('='.repeat(60) + '\n');
 
-    const mlMemory = await dbOps.getMemoryById(mlResult.data?.id);
-    const coffeeMemory = await dbOps.getMemoryById(coffeeResult.data?.id);
-    const cookingMemory = await dbOps.getMemoryById(cookingResult.data?.id);
+    const mlMemory = await dbOps.getMemoryById(mlResult.data?.id, userId);
+    const coffeeMemory = await dbOps.getMemoryById(coffeeResult.data?.id, userId);
+    const cookingMemory = await dbOps.getMemoryById(cookingResult.data?.id, userId);
 
     console.log(`ML Memory embedding: ${mlMemory?.embedding ? `✓ (${mlMemory.embedding.length} dimensions)` : '❌ Missing'}`);
     console.log(`Coffee Memory embedding: ${coffeeMemory?.embedding ? `✓ (${coffeeMemory.embedding.length} dimensions)` : '❌ Missing'}`);

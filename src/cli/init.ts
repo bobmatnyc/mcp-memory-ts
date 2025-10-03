@@ -9,6 +9,7 @@ import { saveUserConfig, loadUserConfig } from './claude-desktop.js';
 import { createClient } from '@libsql/client';
 import OpenAI from 'openai';
 import { colors, icons, success, error, warning, info, section, keyValue } from './colors.js';
+import type { SyncConfig } from '../types/sync-config.js';
 
 interface PromptOptions {
   question: string;
@@ -175,12 +176,63 @@ export async function runInitWizard(): Promise<void> {
     console.log(success('OpenAI API key validated!'));
   }
 
+  // Sync configuration (optional advanced settings)
+  console.log(section(`${icons.cycle} Sync Configuration (Optional)`));
+  console.log(
+    colors.dim('Configure contact sync deduplication and conflict resolution settings.\n')
+  );
+
+  const configureSync = await prompt({
+    question: 'Configure advanced sync settings? (yes/no)',
+    default: 'no',
+  });
+
+  let syncConfig: SyncConfig | undefined = undefined;
+
+  if (configureSync.toLowerCase() === 'yes' || configureSync.toLowerCase() === 'y') {
+    const threshold = await prompt({
+      question: 'Deduplication confidence threshold (0-100)',
+      default: '90',
+    });
+
+    const enableLLM = await prompt({
+      question: 'Enable LLM-based deduplication? (yes/no)',
+      default: 'yes',
+    });
+
+    const conflictStrategy = await prompt({
+      question: 'Conflict resolution strategy (newest/oldest/merge)',
+      default: 'newest',
+    });
+
+    const autoMerge = await prompt({
+      question: 'Auto-merge duplicates when confidence >= threshold? (yes/no)',
+      default: 'yes',
+    });
+
+    syncConfig = {
+      deduplication: {
+        threshold: parseInt(threshold, 10) || 90,
+        chatgptModel: 'gpt-4o',
+        enableLLMDeduplication:
+          enableLLM.toLowerCase() === 'yes' || enableLLM.toLowerCase() === 'y',
+        maxRetries: 3,
+        retryDelayMs: 1000,
+      },
+      conflictResolution: {
+        strategy: conflictStrategy as 'newest' | 'oldest' | 'merge',
+        autoMerge: autoMerge.toLowerCase() === 'yes' || autoMerge.toLowerCase() === 'y',
+      },
+    };
+  }
+
   // Save configuration
   const config = {
     userEmail,
     tursoUrl,
     tursoAuthToken,
     openaiApiKey,
+    sync: syncConfig,
   };
 
   if (saveUserConfig(config)) {

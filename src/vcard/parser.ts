@@ -90,6 +90,10 @@ export function parseVCard(vcardText: string): VCardData[] {
         break;
 
       // MCP custom properties
+      case 'X-MCP-UUID':
+        currentCard['x-mcp-uuid'] = value;
+        break;
+
       case 'X-MCP-ENTITY-TYPE':
         currentCard['x-mcp-entity-type'] = value as EntityType;
         break;

@@ -270,7 +270,7 @@ class DatabaseTestSuite {
     console.log('✓ Entity created:', createdEntity.name);
 
     // Get entity by ID
-    const foundEntity = await this.dbOps.getEntityById(createdEntity.id!);
+    const foundEntity = await this.dbOps.getEntityById(createdEntity.id!, this.testUser1Id);
     if (!foundEntity || foundEntity.name !== testEntity.name) {
       throw new Error('Failed to retrieve entity by ID');
     }
@@ -305,7 +305,7 @@ class DatabaseTestSuite {
     console.log('✓ Memory created:', createdMemory.title);
 
     // Get memory by ID
-    const foundMemory = await this.dbOps.getMemoryById(createdMemory.id!);
+    const foundMemory = await this.dbOps.getMemoryById(createdMemory.id!, this.testUser1Id);
     if (!foundMemory || foundMemory.title !== testMemory.title) {
       throw new Error('Failed to retrieve memory by ID');
     }
@@ -350,7 +350,10 @@ class DatabaseTestSuite {
         console.log('✓ Memory with embedding created');
 
         // Verify embedding was stored
-        const retrievedMemory = await this.dbOps.getMemoryById(createdMemoryWithEmbedding.id!);
+        const retrievedMemory = await this.dbOps.getMemoryById(
+          createdMemoryWithEmbedding.id!,
+          this.testUser1Id
+        );
         if (!retrievedMemory?.embedding || retrievedMemory.embedding.length === 0) {
           throw new Error('Embedding was not stored properly');
         }

@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join, resolve } from 'path';
 import { colors, icons, success, error, warning, info, section, keyValue } from './colors.js';
+import type { UserConfig } from '../types/sync-config.js';
 
 interface ClaudeDesktopConfig {
   mcpServers: {
@@ -16,13 +17,6 @@ interface ClaudeDesktopConfig {
       env?: Record<string, string>;
     };
   };
-}
-
-interface UserConfig {
-  userEmail: string;
-  tursoUrl: string;
-  tursoAuthToken: string;
-  openaiApiKey: string;
 }
 
 const CONFIG_DIR = join(homedir(), '.mcp-memory');
@@ -47,6 +41,33 @@ export function loadUserConfig(): UserConfig | null {
   } catch (err) {
     console.error(error(`Error reading config file: ${err}`));
     return null;
+  }
+}
+
+/**
+ * Load user configuration and set environment variables
+ * This should be called early in CLI startup to make config available to all commands
+ */
+export function loadConfigToEnv(): void {
+  const config = loadUserConfig();
+  if (!config) {
+    // No config file found - this is OK, user might be using .env or system env vars
+    return;
+  }
+
+  // Set environment variables from config if not already set
+  // Existing env vars take precedence over config file
+  if (!process.env.TURSO_URL && config.tursoUrl) {
+    process.env.TURSO_URL = config.tursoUrl;
+  }
+  if (!process.env.TURSO_AUTH_TOKEN && config.tursoAuthToken) {
+    process.env.TURSO_AUTH_TOKEN = config.tursoAuthToken;
+  }
+  if (!process.env.OPENAI_API_KEY && config.openaiApiKey) {
+    process.env.OPENAI_API_KEY = config.openaiApiKey;
+  }
+  if (!process.env.DEFAULT_USER_EMAIL && config.userEmail) {
+    process.env.DEFAULT_USER_EMAIL = config.userEmail;
   }
 }
 

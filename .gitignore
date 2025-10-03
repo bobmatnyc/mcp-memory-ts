@@ -88,10 +88,18 @@ temp/
 *.backup
 .vercel
 
-# Temporary documentation and test files
+# Temporary documentation and test files (should go in docs/)
 *-SUMMARY.md
 *-FIXES*.md
 *test-*.sh
+/TEST_*.md
+/SECURITY_*.md
+/CHANGELOG-*.md
+/config-*.md
+
+# Temporary test files (should go in tools/ or tests/)
+/test-*.ts
+/test-*.js
 
 # Added by Claude MPM /mpm-init
 $RECYCLE.BIN/

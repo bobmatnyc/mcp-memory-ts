@@ -43,6 +43,7 @@ export interface VCardData {
   note?: string;
   categories?: string[];
   // Custom MCP properties (X- prefix)
+  'x-mcp-uuid'?: string; // MCP entity UUID for sync matching
   'x-mcp-entity-type'?: EntityType;
   'x-mcp-person-type'?: PersonType;
   'x-mcp-importance'?: ImportanceLevel;

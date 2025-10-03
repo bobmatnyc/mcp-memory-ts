@@ -140,7 +140,7 @@ class SchemaAlignmentTest {
     this.createdIds.entities.push(createdEntity.id as string);
 
     // Retrieve and verify contact info was stored correctly
-    const retrieved = await this.ops.getEntityById(createdEntity.id);
+    const retrieved = await this.ops.getEntityById(createdEntity.id, this.testUserId);
     if (!retrieved) {
       console.error(`  ❌ Failed to retrieve entity with ID: ${createdEntity.id}`);
       throw new Error('Failed to retrieve entity');
@@ -203,7 +203,7 @@ class SchemaAlignmentTest {
     }
 
     // Retrieve memory
-    const retrieved = await this.ops.getMemoryById(createdMemory.id);
+    const retrieved = await this.ops.getMemoryById(createdMemory.id, this.testUserId);
     if (!retrieved) {
       throw new Error('Failed to retrieve memory');
     }

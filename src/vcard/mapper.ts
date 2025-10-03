@@ -45,6 +45,7 @@ export function entityToVCard(entity: Entity): VCardData {
   if (entity.tags && entity.tags.length > 0) vcard.categories = entity.tags;
 
   // Map MCP custom properties
+  if (entity.id) vcard['x-mcp-uuid'] = String(entity.id);
   vcard['x-mcp-entity-type'] = entity.entityType;
   if (entity.personType) vcard['x-mcp-person-type'] = entity.personType;
   vcard['x-mcp-importance'] = entity.importance;

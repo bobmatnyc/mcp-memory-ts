@@ -101,6 +101,10 @@ function generateSingleVCard(card: VCardData, version: VCardVersion): string {
   }
 
   // MCP custom properties (X- prefix)
+  if (card['x-mcp-uuid']) {
+    lines.push(formatLine('X-MCP-UUID', card['x-mcp-uuid']));
+  }
+
   if (card['x-mcp-entity-type']) {
     lines.push(formatLine('X-MCP-ENTITY-TYPE', card['x-mcp-entity-type']));
   }

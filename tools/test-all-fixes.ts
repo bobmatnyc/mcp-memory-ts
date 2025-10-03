@@ -61,8 +61,8 @@ async function runTests() {
     // Test 2: Retrieve and verify field preservation
     console.log('TEST 2: Retrieving memories and checking field preservation...');
 
-    const retrieved1 = await operations.getMemoryById(testMemory1.id);
-    const retrieved2 = await operations.getMemoryById(testMemory2.id);
+    const retrieved1 = await operations.getMemoryById(testMemory1.id, USER_ID);
+    const retrieved2 = await operations.getMemoryById(testMemory2.id, USER_ID);
 
     console.log('\nMemory 1 (Episodic):');
     console.log('  Stored type:', 'episodic', '→ Retrieved:', retrieved1?.memoryType);

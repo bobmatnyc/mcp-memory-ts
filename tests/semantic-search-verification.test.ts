@@ -112,8 +112,14 @@ describe('Semantic Search Verification', () => {
     // Step 2: Verify embeddings were generated
     console.log('\nStep 2: Verifying embeddings were generated...');
 
-    const mlMemory = await (memoryCore as any).dbOps.getMemoryById(mlMemoryResult.data?.id);
-    const coffeeMemory = await (memoryCore as any).dbOps.getMemoryById(coffeeMemoryResult.data?.id);
+    const mlMemory = await (memoryCore as any).dbOps.getMemoryById(
+      mlMemoryResult.data?.id,
+      testUserId
+    );
+    const coffeeMemory = await (memoryCore as any).dbOps.getMemoryById(
+      coffeeMemoryResult.data?.id,
+      testUserId
+    );
 
     expect(mlMemory?.embedding).toBeDefined();
     expect(Array.isArray(mlMemory?.embedding)).toBe(true);

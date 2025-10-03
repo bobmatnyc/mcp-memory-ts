@@ -10,6 +10,7 @@ A modern TypeScript implementation of a cloud-based vector memory service for AI
 - **🔄 Automatic Embeddings**: Auto-generates and updates embeddings on data changes
 - **🏢 Entity Management**: Track people, organizations, projects, and relationships
 - **📚 Interaction History**: Store and retrieve conversation history with context
+- **📱 Contacts Sync**: True bidirectional sync with macOS Contacts using LLM-based deduplication
 - **🔌 MCP Protocol**: JSON-RPC 2.0 over stdio (local) and HTTP (remote)
 - **🌐 REST API**: HTTP interface for web applications
 - **🔐 OAuth Integration**: Clerk authentication for remote access with 95.2% test coverage
@@ -204,6 +205,7 @@ See [docs/testing/QA_TEST_REPORT.md](./docs/testing/QA_TEST_REPORT.md) for detai
 ### Guides
 - [Deployment Guide](./DEPLOYMENT.md) - Production deployment
 - [CLI Guide](./docs/guides/CLI-GUIDE.md) - Command-line interface
+- [Contacts Sync Guide](./docs/guides/CONTACTS_SYNC_GUIDE.md) - Bidirectional sync with macOS Contacts
 - [Migration Guide](./docs/guides/MIGRATION_QUICK_START.md) - Schema migrations
 
 ### Schema & Database

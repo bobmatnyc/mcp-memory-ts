@@ -18,6 +18,7 @@ import {
   updateClaudeDesktop,
   statusClaudeDesktop,
   uninstallClaudeDesktop,
+  loadConfigToEnv,
 } from './claude-desktop.js';
 import {
   formatMainHelp,
@@ -29,8 +30,13 @@ import {
 import { colors, error as errorMsg, success as successMsg } from './colors.js';
 import packageJson from '../../package.json' with { type: 'json' };
 
-// Load environment variables
+// Load environment variables from .env file
 dotenv.config();
+
+// Load user configuration and set environment variables
+// This allows commands to access config saved by 'mcp-memory init'
+// Existing env vars (from .env or system) take precedence
+loadConfigToEnv();
 
 const program = new Command();
 
@@ -137,10 +143,13 @@ const contactsCommand = program
 // Contacts sync subcommand
 contactsCommand
   .command('sync')
-  .description('Sync entities with macOS Contacts')
+  .description('Sync entities with macOS Contacts using bidirectional sync and LLM deduplication')
   .requiredOption('--user-email <email>', 'User email or ID')
   .option('-d, --direction <direction>', 'Sync direction: export, import, or both', 'both')
   .option('--dry-run', 'Preview without making changes', false)
+  .option('--auto-merge', 'Automatically merge duplicates when confidence >= threshold')
+  .option('--threshold <number>', 'Deduplication confidence threshold (0-100)', '90')
+  .option('--no-llm', 'Disable LLM-based deduplication (use simple rules only)')
   .action(async options => {
     try {
       const validDirections = ['export', 'import', 'both'];
@@ -149,10 +158,19 @@ contactsCommand
         process.exit(1);
       }
 
+      const threshold = parseInt(options.threshold, 10);
+      if (isNaN(threshold) || threshold < 0 || threshold > 100) {
+        console.error(errorMsg('Threshold must be between 0 and 100'));
+        process.exit(1);
+      }
+
       const result = await syncContacts({
         userId: options.userEmail,
         direction: options.direction as 'export' | 'import' | 'both',
         dryRun: options.dryRun,
+        autoMerge: options.autoMerge,
+        threshold,
+        noLlm: !options.llm, // Commander.js negates the --no-llm flag
       });
 
       if (!result.success) {
