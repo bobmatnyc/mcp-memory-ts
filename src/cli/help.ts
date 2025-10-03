@@ -34,7 +34,7 @@ export const commandCategories: CommandCategory[] = [
   {
     name: 'Data Management',
     icon: icons.database,
-    commands: ['export-vcard', 'import-vcard', 'list-types'],
+    commands: ['vcard', 'contacts', 'list-types'],
   },
 ];
 
@@ -91,7 +91,7 @@ export const commandExamples: Record<string, CommandExample[]> = {
     },
     {
       description: 'Check status for specific platform',
-      command: 'mcp-memory status auggie',
+      command: 'mcp-memory status claude-desktop',
     },
   ],
   uninstall: [
@@ -104,33 +104,40 @@ export const commandExamples: Record<string, CommandExample[]> = {
       command: 'mcp-memory uninstall claude-desktop',
     },
   ],
-  'export-vcard': [
+  vcard: [
     {
-      description: 'Export all entities to vCard 4.0',
-      command: 'mcp-memory export-vcard --user-email user@example.com',
+      description: 'Export entities to vCard format',
+      command: 'mcp-memory vcard export --user-email user@example.com',
     },
     {
       description: 'Export to specific file',
-      command: 'mcp-memory export-vcard --user-email user@example.com -o contacts.vcf',
+      command: 'mcp-memory vcard export --user-email user@example.com -o contacts.vcf',
     },
-    {
-      description: 'Export all entity types',
-      command: 'mcp-memory export-vcard --user-email user@example.com --all',
-    },
-  ],
-  'import-vcard': [
     {
       description: 'Import vCard file',
-      command: 'mcp-memory import-vcard contacts.vcf --user-email user@example.com',
+      command: 'mcp-memory vcard import contacts.vcf --user-email user@example.com',
     },
     {
       description: 'Preview import without saving',
-      command: 'mcp-memory import-vcard contacts.vcf --user-email user@example.com --dry-run',
+      command: 'mcp-memory vcard import contacts.vcf --user-email user@example.com --dry-run',
+    },
+  ],
+  contacts: [
+    {
+      description: 'Sync both ways with macOS Contacts',
+      command: 'mcp-memory contacts sync --user-email user@example.com',
     },
     {
-      description: 'Import with custom tags',
-      command:
-        'mcp-memory import-vcard contacts.vcf --user-email user@example.com --tags "work,important"',
+      description: 'Export entities to macOS Contacts only',
+      command: 'mcp-memory contacts sync --user-email user@example.com --direction export',
+    },
+    {
+      description: 'Import from macOS Contacts only',
+      command: 'mcp-memory contacts sync --user-email user@example.com --direction import',
+    },
+    {
+      description: 'Preview sync without making changes',
+      command: 'mcp-memory contacts sync --user-email user@example.com --dry-run',
     },
   ],
   'list-types': [
@@ -202,8 +209,11 @@ export function formatMainHelp(program: Command): string {
   lines.push('');
   lines.push(`  ${colors.dim('#')} Export contacts to vCard`);
   lines.push(
-    `  ${example('$ mcp-memory export-vcard --user-email user@example.com -o contacts.vcf')}`
+    `  ${example('$ mcp-memory vcard export --user-email user@example.com -o contacts.vcf')}`
   );
+  lines.push('');
+  lines.push(`  ${colors.dim('#')} Sync with macOS Contacts`);
+  lines.push(`  ${example('$ mcp-memory contacts sync --user-email user@example.com')}`);
 
   // Footer
   lines.push('');

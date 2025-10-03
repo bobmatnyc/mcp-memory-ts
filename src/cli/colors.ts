@@ -44,6 +44,7 @@ export const icons = {
   lightning: '⚡',
   book: '📖',
   bulb: '💡',
+  contacts: '👥',
 };
 
 /**

@@ -195,9 +195,7 @@ export async function updateClaudeDesktop(): Promise<void> {
   // Load Claude Desktop config
   const claudeConfig = loadClaudeDesktopConfig();
   if (!claudeConfig || !claudeConfig.mcpServers['mcp-memory-ts']) {
-    console.error(
-      error('MCP Memory Server not installed. Run "mcp-memory install" first.')
-    );
+    console.error(error('MCP Memory Server not installed. Run "mcp-memory install" first.'));
     process.exit(1);
   }
 

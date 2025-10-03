@@ -8,6 +8,7 @@ import * as dotenv from 'dotenv';
 import didYouMean from 'didyoumean2';
 import { exportVCard } from './commands/export.js';
 import { importVCard } from './commands/import.js';
+import { syncContacts } from './commands/contacts-sync.js';
 import { runTests } from './commands/test.js';
 import { EntityType, PersonType, ImportanceLevel } from '../types/enums.js';
 import type { VCardVersion } from '../vcard/types.js';
@@ -59,9 +60,12 @@ program
   })
   .showHelpAfterError(false);
 
-// Export command
-program
-  .command('export-vcard')
+// vCard command group
+const vcardCommand = program.command('vcard').description('Import/export entities in vCard format');
+
+// vCard export subcommand
+vcardCommand
+  .command('export')
   .description('Export entities to vCard format')
   .requiredOption('--user-email <email>', 'User email or ID')
   .option('-o, --output <file>', 'Output file path', 'entities.vcf')
@@ -83,9 +87,9 @@ program
     }
   });
 
-// Import command
-program
-  .command('import-vcard')
+// vCard import subcommand
+vcardCommand
+  .command('import')
   .description('Import vCard file to create entities')
   .argument('<file>', 'vCard file to import')
   .requiredOption('--user-email <email>', 'User email or ID')
@@ -121,6 +125,41 @@ program
       }
     } catch (error) {
       console.error(errorMsg(`Import failed: ${error}`));
+      process.exit(1);
+    }
+  });
+
+// Contacts command group (macOS Contacts integration)
+const contactsCommand = program
+  .command('contacts')
+  .description('Sync entities with macOS Contacts app');
+
+// Contacts sync subcommand
+contactsCommand
+  .command('sync')
+  .description('Sync entities with macOS Contacts')
+  .requiredOption('--user-email <email>', 'User email or ID')
+  .option('-d, --direction <direction>', 'Sync direction: export, import, or both', 'both')
+  .option('--dry-run', 'Preview without making changes', false)
+  .action(async options => {
+    try {
+      const validDirections = ['export', 'import', 'both'];
+      if (!validDirections.includes(options.direction)) {
+        console.error(errorMsg(`Invalid direction. Must be one of: ${validDirections.join(', ')}`));
+        process.exit(1);
+      }
+
+      const result = await syncContacts({
+        userId: options.userEmail,
+        direction: options.direction as 'export' | 'import' | 'both',
+        dryRun: options.dryRun,
+      });
+
+      if (!result.success) {
+        process.exit(1);
+      }
+    } catch (error) {
+      console.error(errorMsg(`Contacts sync failed: ${error}`));
       process.exit(1);
     }
   });
@@ -206,7 +245,9 @@ function validatePlatform(platform: string): void {
 function checkPlatformSupport(platform: string): void {
   if (platform !== 'claude-desktop') {
     console.error(
-      errorMsg(`Platform '${platform}' is not yet supported. Currently only 'claude-desktop' is available.`)
+      errorMsg(
+        `Platform '${platform}' is not yet supported. Currently only 'claude-desktop' is available.`
+      )
     );
     process.exit(1);
   }
@@ -215,7 +256,11 @@ function checkPlatformSupport(platform: string): void {
 program
   .command('install')
   .description('Install MCP memory server to a platform')
-  .argument('[platform]', `Platform to install to (${SUPPORTED_PLATFORMS.join(', ')})`, DEFAULT_PLATFORM)
+  .argument(
+    '[platform]',
+    `Platform to install to (${SUPPORTED_PLATFORMS.join(', ')})`,
+    DEFAULT_PLATFORM
+  )
   .action(async (platform: string) => {
     try {
       validatePlatform(platform);
@@ -230,7 +275,11 @@ program
 program
   .command('update')
   .description('Update MCP memory server configuration')
-  .argument('[platform]', `Platform to update (${SUPPORTED_PLATFORMS.join(', ')})`, DEFAULT_PLATFORM)
+  .argument(
+    '[platform]',
+    `Platform to update (${SUPPORTED_PLATFORMS.join(', ')})`,
+    DEFAULT_PLATFORM
+  )
   .action(async (platform: string) => {
     try {
       validatePlatform(platform);
@@ -260,7 +309,11 @@ program
 program
   .command('uninstall')
   .description('Remove MCP memory server from a platform')
-  .argument('[platform]', `Platform to uninstall from (${SUPPORTED_PLATFORMS.join(', ')})`, DEFAULT_PLATFORM)
+  .argument(
+    '[platform]',
+    `Platform to uninstall from (${SUPPORTED_PLATFORMS.join(', ')})`,
+    DEFAULT_PLATFORM
+  )
   .action(async (platform: string) => {
     try {
       validatePlatform(platform);
