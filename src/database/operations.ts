@@ -147,8 +147,11 @@ export class DatabaseOperations {
     return { ...entity, id: entityId };
   }
 
-  async getEntityById(id: number | string): Promise<Entity | null> {
-    const result = await this.db.execute('SELECT * FROM entities WHERE id = ?', [id]);
+  async getEntityById(id: number | string, userId: string): Promise<Entity | null> {
+    const result = await this.db.execute(
+      'SELECT * FROM entities WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
     return result.rows.length > 0 ? this.mapRowToEntity(result.rows[0] as any) : null;
   }
 
@@ -172,6 +175,47 @@ export class DatabaseOperations {
     );
 
     return result.rows.map(row => this.mapRowToEntity(row as any));
+  }
+
+  async updateEntity(id: string, updates: Partial<Entity>, userId: string): Promise<Entity | null> {
+    const mappedUpdates = SchemaCompatibility.mapEntityForDatabase(updates as any);
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    for (const [key, value] of Object.entries(mappedUpdates)) {
+      if (key === 'id' || key === 'user_id' || value === undefined) continue;
+
+      // Convert camelCase to snake_case if needed
+      const dbKey = key.includes('_') ? key : key.replace(/([A-Z])/g, '_$1').toLowerCase();
+      fields.push(`${dbKey} = ?`);
+
+      if (key === 'tags') {
+        values.push(typeof value === 'string' ? value : JSON.stringify(sanitizeTags(value)));
+      } else if (key === 'metadata') {
+        values.push(typeof value === 'string' ? value : stringifyMetadata(value));
+      } else if (key === 'contact_info' && typeof value === 'object') {
+        values.push(JSON.stringify(value));
+      } else if (typeof value === 'boolean') {
+        values.push(value ? 1 : 0);
+      } else {
+        values.push(value);
+      }
+    }
+
+    // Always update the updated_at timestamp
+    fields.push('updated_at = ?');
+    values.push(new Date().toISOString());
+
+    if (fields.length === 1) {
+      // Only updated_at changed, nothing to update
+      return this.getEntityById(id, userId);
+    }
+
+    values.push(id, userId);
+    const sql = `UPDATE entities SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`;
+
+    await this.db.execute(sql, values);
+    return this.getEntityById(id, userId);
   }
 
   // Memory operations
@@ -222,8 +266,11 @@ export class DatabaseOperations {
     return { ...memory, id: memoryId };
   }
 
-  async getMemoryById(id: number | string): Promise<Memory | null> {
-    const result = await this.db.execute('SELECT * FROM memories WHERE id = ?', [id]);
+  async getMemoryById(id: number | string, userId: string): Promise<Memory | null> {
+    const result = await this.db.execute(
+      'SELECT * FROM memories WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
     return result.rows.length > 0 ? this.mapRowToMemory(result.rows[0] as any) : null;
   }
 
