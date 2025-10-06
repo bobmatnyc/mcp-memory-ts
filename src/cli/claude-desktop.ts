@@ -136,14 +136,15 @@ function saveClaudeDesktopConfig(config: ClaudeDesktopConfig): boolean {
 }
 
 /**
- * Get the path to the compiled MCP server
+ * Get the path to the CLI binary
+ * Returns the path to the mcp-memory executable
  */
-function getMcpServerPath(): string {
+function getCliPath(): string {
   // Try global npm installation first
   try {
     const { execSync } = require('child_process');
-    const npmRoot = execSync('npm root -g', { encoding: 'utf-8' }).trim();
-    const globalPath = join(npmRoot, 'mcp-memory-ts', 'dist', 'desktop-mcp-server.js');
+    const npmBin = execSync('npm bin -g', { encoding: 'utf-8' }).trim();
+    const globalPath = join(npmBin, 'mcp-memory');
 
     if (existsSync(globalPath)) {
       return globalPath;
@@ -152,19 +153,31 @@ function getMcpServerPath(): string {
     // Fall back to local development path if npm command fails
   }
 
-  // For local development - try to find the dist directory relative to this file
+  // For local development - check if we can use npx or local node_modules/.bin
   const projectRoot = resolve(__dirname, '../..');
-  const serverPath = join(projectRoot, 'dist', 'desktop-mcp-server.js');
+  const localBinPath = join(projectRoot, 'node_modules', '.bin', 'mcp-memory');
 
-  if (!existsSync(serverPath)) {
-    throw new Error(`MCP server not found. Tried:
-  - Global: $(npm root -g)/mcp-memory-ts/dist/desktop-mcp-server.js
-  - Local: ${serverPath}
-
-Run 'npm run build-full' first, or install globally with 'npm install -g mcp-memory-ts'`);
+  if (existsSync(localBinPath)) {
+    return localBinPath;
   }
 
-  return serverPath;
+  // Last resort: try to use mcp-memory from PATH
+  try {
+    const { execSync } = require('child_process');
+    const whichResult = execSync('which mcp-memory', { encoding: 'utf-8' }).trim();
+    if (whichResult && existsSync(whichResult)) {
+      return whichResult;
+    }
+  } catch (error) {
+    // which command failed, continue to error
+  }
+
+  throw new Error(`mcp-memory CLI not found. Tried:
+  - Global: $(npm bin -g)/mcp-memory
+  - Local: ${localBinPath}
+  - PATH: which mcp-memory
+
+Run 'npm run build-full && npm link' first, or install globally with 'npm install -g mcp-memory-ts'`);
 }
 
 /**
@@ -180,10 +193,10 @@ export async function installClaudeDesktop(): Promise<void> {
     process.exit(1);
   }
 
-  // Get MCP server path
-  let serverPath: string;
+  // Get CLI path
+  let cliPath: string;
   try {
-    serverPath = getMcpServerPath();
+    cliPath = getCliPath();
   } catch (err) {
     console.error(error(`${err}`));
     process.exit(1);
@@ -195,10 +208,10 @@ export async function installClaudeDesktop(): Promise<void> {
     claudeConfig = { mcpServers: {} };
   }
 
-  // Add/update mcp-memory-ts entry
+  // Add/update mcp-memory-ts entry using "mcp-memory server" command
   claudeConfig.mcpServers['mcp-memory-ts'] = {
-    command: 'node',
-    args: [serverPath],
+    command: cliPath,
+    args: ['server'],
     env: {
       TURSO_URL: userConfig.tursoUrl,
       TURSO_AUTH_TOKEN: userConfig.tursoAuthToken,
@@ -213,7 +226,7 @@ export async function installClaudeDesktop(): Promise<void> {
     console.log(success('\nMCP Memory Server installed successfully!'));
     console.log(section(`${icons.pencil} Configuration:`));
     console.log(`   ${keyValue('User', userConfig.userEmail)}`);
-    console.log(`   ${keyValue('Server', serverPath)}`);
+    console.log(`   ${keyValue('Command', `${cliPath} server`)}`);
     console.log(`   ${keyValue('Database', userConfig.tursoUrl)}`);
     console.log(warning('\nPlease restart Claude Desktop for changes to take effect.'));
     console.log('');
@@ -242,10 +255,11 @@ export async function updateClaudeDesktop(): Promise<void> {
     process.exit(1);
   }
 
-  // Update server path
+  // Update CLI path and ensure using "server" command
   try {
-    const serverPath = getMcpServerPath();
-    claudeConfig.mcpServers['mcp-memory-ts'].args = [serverPath];
+    const cliPath = getCliPath();
+    claudeConfig.mcpServers['mcp-memory-ts'].command = cliPath;
+    claudeConfig.mcpServers['mcp-memory-ts'].args = ['server'];
   } catch (err) {
     console.error(error(`${err}`));
     process.exit(1);

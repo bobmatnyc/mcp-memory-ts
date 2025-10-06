@@ -14,7 +14,7 @@ import {
 
 // Base interface for all database entities
 export interface BaseEntity {
-  id?: string | number;
+  id?: string; // All IDs normalized to strings at database boundary
   createdAt?: string;
   updatedAt?: string;
 }
@@ -34,7 +34,7 @@ export interface User extends BaseEntity {
 
 // Entity interface
 export interface Entity extends BaseEntity {
-  id?: number | string;
+  id?: string; // Normalized to string at database boundary
   userId?: string; // For multi-tenant support
   name: string;
   entityType: EntityType;
@@ -58,7 +58,7 @@ export interface Entity extends BaseEntity {
 
 // Memory interface
 export interface Memory extends BaseEntity {
-  id?: number | string;
+  id?: string; // Normalized to string at database boundary
   userId?: string; // For multi-tenant support
   title: string;
   content: string;
@@ -73,7 +73,7 @@ export interface Memory extends BaseEntity {
 
 // Interaction interface
 export interface Interaction extends BaseEntity {
-  id?: number | string;
+  id?: string; // Normalized to string at database boundary
   userId?: string;
   userPrompt: string;
   assistantResponse: string;

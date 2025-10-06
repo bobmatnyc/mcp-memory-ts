@@ -139,7 +139,7 @@ export class DatabaseOperations {
       mappedEntity.updated_at || mappedEntity.updatedAt || new Date().toISOString(),
     ]);
 
-    return { ...entity, id: result.lastInsertRowid };
+    return { ...entity, id: String(result.lastInsertRowid) }; // ✅ Convert to string
   }
 
   async getEntityById(id: number | string, userId: string): Promise<Entity | null> {
@@ -253,7 +253,7 @@ export class DatabaseOperations {
       mappedMemory.updated_at || mappedMemory.updatedAt || new Date().toISOString(),
     ]);
 
-    return { ...memory, id: result.lastInsertRowid };
+    return { ...memory, id: String(result.lastInsertRowid) }; // ✅ Convert to string
   }
 
   async getMemoryById(id: number | string, userId: string): Promise<Memory | null> {

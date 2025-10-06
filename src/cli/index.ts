@@ -343,6 +343,33 @@ program
     }
   });
 
+// Server command - Run as MCP server for Claude Desktop
+program
+  .command('server')
+  .description('Run as MCP server (for Claude Desktop integration)')
+  .option('--debug', 'Enable debug logging', false)
+  .action(async options => {
+    try {
+      // Set debug mode if requested
+      if (options.debug) {
+        process.env.MCP_DEBUG = '1';
+      }
+
+      // Import and start the desktop MCP server
+      const { SimpleMCPServer } = await import('../desktop-mcp-server.js');
+      const server = new SimpleMCPServer();
+
+      // Start the server (this will handle stdio communication)
+      await server.start();
+
+      // The server runs in an event loop, so we don't need to keep process alive
+    } catch (error) {
+      // Use stderr for errors (stdout is reserved for MCP communication)
+      process.stderr.write(`Failed to start MCP server: ${error}\n`);
+      process.exit(1);
+    }
+  });
+
 // Set global program reference for help system
 setGlobalProgram(program);
 

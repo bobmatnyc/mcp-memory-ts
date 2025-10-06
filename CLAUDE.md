@@ -135,6 +135,13 @@ mcp-memory status
 mcp-memory update
 ```
 
+**Run as MCP server:**
+```bash
+mcp-memory server
+# Or with debug logging:
+mcp-memory server --debug
+```
+
 **Export entities to vCard:**
 ```bash
 mcp-memory export-vcard --user-email user@example.com -o contacts.vcf
@@ -343,11 +350,30 @@ mcp-memory status
 
 ### Manual Claude Desktop Integration
 
+**Recommended approach** (using CLI command):
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "memory-ts": {
+    "mcp-memory-ts": {
+      "command": "mcp-memory",
+      "args": ["server"],
+      "env": {
+        "TURSO_URL": "your-database-url",
+        "TURSO_AUTH_TOKEN": "your-auth-token",
+        "OPENAI_API_KEY": "your-openai-key",
+        "DEFAULT_USER_EMAIL": "user@example.com"
+      }
+    }
+  }
+}
+```
+
+**Alternative approach** (direct node execution):
+```json
+{
+  "mcpServers": {
+    "mcp-memory-ts": {
       "command": "node",
       "args": ["/absolute/path/to/mcp-memory-ts/dist/desktop-mcp-server.js"],
       "env": {

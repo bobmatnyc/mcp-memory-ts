@@ -113,7 +113,7 @@ export class SchemaCompatibility {
     }
 
     const memory: any = {
-      id: row.id,
+      id: String(row.id), // ✅ Convert to string for consistency
       userId: row.user_id,
       // Use TypeScript fields, fallback to Python fields
       title: row.title || row.description || '',
@@ -221,7 +221,7 @@ export class SchemaCompatibility {
    */
   static mapEntityFromDatabase(row: Record<string, any>): Entity {
     const entity: any = {
-      id: row.id,
+      id: String(row.id), // ✅ Convert to string for consistency
       userId: row.user_id,
       name: row.name || '',
       entityType: row.entity_type || row.entityType || 'person',

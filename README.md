@@ -92,30 +92,54 @@ CLERK_SECRET_KEY=your-clerk-secret-key
 
 ### MCP Server (for Claude Desktop)
 
+**Recommended: Using CLI Tool**
+
+```bash
+# Install globally
+npm install -g mcp-memory-ts
+
+# Initialize configuration
+mcp-memory init
+
+# Install to Claude Desktop
+mcp-memory install
+
+# Check status
+mcp-memory status
+```
+
+This creates a config in `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "mcp-memory-ts": {
+      "command": "mcp-memory",
+      "args": ["server"],
+      "env": {
+        "TURSO_URL": "your-database-url",
+        "TURSO_AUTH_TOKEN": "your-auth-token",
+        "OPENAI_API_KEY": "your-openai-key",
+        "DEFAULT_USER_EMAIL": "user@example.com"
+      }
+    }
+  }
+}
+```
+
+**Manual Setup**
+
+For development or manual configuration:
+
 ```bash
 # Start MCP server
 npm run mcp-server
 
 # Or with debug logging
 MCP_DEBUG=1 npm run mcp-server
-```
 
-Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "memory-ts": {
-      "command": "node",
-      "args": ["/path/to/mcp-memory-ts/dist/mcp/server.js"],
-      "env": {
-        "TURSO_URL": "your-database-url",
-        "TURSO_AUTH_TOKEN": "your-auth-token",
-        "OPENAI_API_KEY": "your-openai-key"
-      }
-    }
-  }
-}
+# Or using CLI command
+mcp-memory server --debug
 ```
 
 ### Remote MCP Server (HTTP with OAuth)

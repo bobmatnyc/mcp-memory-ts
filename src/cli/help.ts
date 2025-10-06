@@ -29,7 +29,7 @@ export const commandCategories: CommandCategory[] = [
   {
     name: 'Platform Integration',
     icon: icons.robot,
-    commands: ['install', 'update', 'status', 'uninstall'],
+    commands: ['install', 'update', 'status', 'uninstall', 'server'],
   },
   {
     name: 'Data Management',
@@ -102,6 +102,16 @@ export const commandExamples: Record<string, CommandExample[]> = {
     {
       description: 'Uninstall from specific platform',
       command: 'mcp-memory uninstall claude-desktop',
+    },
+  ],
+  server: [
+    {
+      description: 'Run as MCP server for Claude Desktop',
+      command: 'mcp-memory server',
+    },
+    {
+      description: 'Run server with debug logging enabled',
+      command: 'mcp-memory server --debug',
     },
   ],
   vcard: [
