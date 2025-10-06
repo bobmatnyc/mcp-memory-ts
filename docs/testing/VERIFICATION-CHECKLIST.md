@@ -6,7 +6,7 @@ Use this checklist to verify the CLI package is working correctly.
 
 - [ ] Project builds without errors: `npm run build-full`
 - [ ] CLI binary exists: `ls dist/cli/index.js`
-- [ ] MCP server exists: `ls dist/simple-mcp-server.js`
+- [ ] MCP server exists: `ls dist/desktop-mcp-server.js`
 - [ ] CLI modules compiled: `ls dist/cli/claude-desktop.js dist/cli/init.js`
 
 ## Installation Verification

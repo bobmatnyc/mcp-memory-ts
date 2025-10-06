@@ -42,7 +42,7 @@ class MCPServerTestClient {
   private outputBuffer = '';
 
   async start(): Promise<void> {
-    const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+    const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
 
     this.serverProcess = spawn('node', [serverPath], {
       env: {

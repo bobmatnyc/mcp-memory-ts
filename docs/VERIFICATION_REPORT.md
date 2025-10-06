@@ -15,7 +15,7 @@
 - **Status**: PASSED ✅
 - **Command**: `npm run build`
 - **Result**: TypeScript compilation successful
-- **Output**: Generated `dist/simple-mcp-server.js` and all dependencies
+- **Output**: Generated `dist/desktop-mcp-server.js` and all dependencies
 - **Node.js**: v20.19.0 (compatible)
 
 ### ✅ Database Integration
@@ -103,7 +103,7 @@ OPENAI_API_KEY=***  ⚠️ Optional (embeddings will be disabled if not set)
 5. **Performance**: Optimized queries and caching ready
 
 ### ✅ Build Artifacts
-- **Main Entry**: `dist/simple-mcp-server.js`
+- **Main Entry**: `dist/desktop-mcp-server.js`
 - **API Server**: `dist/simple-api-server.js`
 - **Size**: Optimized TypeScript compilation
 - **Dependencies**: All external dependencies properly bundled
@@ -116,7 +116,7 @@ The project is ready for Claude Desktop integration with this configuration:
   "mcpServers": {
     "memory-ts": {
       "command": "node",
-      "args": ["/path/to/mcp-memory-ts/dist/simple-mcp-server.js"],
+      "args": ["/path/to/mcp-memory-ts/dist/desktop-mcp-server.js"],
       "env": {
         "TURSO_URL": "libsql://ai-memory-bobmatnyc.aws-us-east-1.turso.io",
         "TURSO_AUTH_TOKEN": "your-auth-token",
@@ -157,7 +157,7 @@ The mcp-memory-ts project has been thoroughly verified and meets all production 
 1. Upload `dist/` directory to deployment environment
 2. Configure environment variables
 3. Verify database connection
-4. Start MCP server: `node dist/simple-mcp-server.js`
+4. Start MCP server: `node dist/desktop-mcp-server.js`
 
 ### 📊 Test Summary
 - **Database Tests**: 100% PASSED

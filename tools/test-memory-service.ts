@@ -47,7 +47,7 @@ class MemoryServiceTester {
         MCP_DEBUG: '0',
       };
 
-      const serverProcess = spawn('tsx', ['src/simple-mcp-server.ts'], {
+      const serverProcess = spawn('tsx', ['src/desktop-mcp-server.ts'], {
         cwd: process.cwd(),
         env,
         stdio: ['pipe', 'pipe', 'pipe'],

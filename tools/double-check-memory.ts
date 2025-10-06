@@ -20,7 +20,7 @@ class MemoryServiceDoubleCheck {
 
   async sendMcpCommand(request: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      const serverProcess = spawn('tsx', ['src/simple-mcp-server.ts'], {
+      const serverProcess = spawn('tsx', ['src/desktop-mcp-server.ts'], {
         env: {
           ...process.env,
           TURSO_URL: process.env.TURSO_URL,

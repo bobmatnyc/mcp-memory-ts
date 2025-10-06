@@ -486,7 +486,7 @@ mcp-memory-ts/
 │   │   └── public/                    # Static assets
 │   │
 │   ├── mcp/
-│   │   ├── simple-mcp-server.ts       # Stdio MCP server
+│   │   ├── desktop-mcp-server.ts       # Stdio MCP server
 │   │   └── remote-mcp-server.ts       # HTTP MCP server
 │   │
 │   └── utils/

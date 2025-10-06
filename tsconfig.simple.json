@@ -21,7 +21,7 @@
     "verbatimModuleSyntax": false
   },
   "include": [
-    "src/simple-mcp-server.ts",
+    "src/desktop-mcp-server.ts",
     "src/types/enums.ts"
   ]
 }

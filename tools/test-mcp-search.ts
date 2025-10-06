@@ -3,7 +3,7 @@
  * Test MCP server search functionality end-to-end
  */
 
-import { SimpleMCPServer } from '../src/simple-mcp-server.js';
+import { SimpleMCPServer } from '../src/desktop-mcp-server.js';
 
 async function testMCPSearch() {
   console.log('=== MCP SERVER SEARCH TEST ===\n');

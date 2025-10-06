@@ -30,7 +30,7 @@ class MCPServerTester {
     console.log('🚀 Starting MCP Server Test\n');
 
     // Start the MCP server
-    this.server = spawn('tsx', ['src/simple-mcp-server.ts'], {
+    this.server = spawn('tsx', ['src/desktop-mcp-server.ts'], {
       env: { ...process.env, MCP_DEBUG: '1' },
     });
 

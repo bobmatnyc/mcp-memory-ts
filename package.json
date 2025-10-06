@@ -15,7 +15,7 @@
     "build:vercel": "tsc -p tsconfig.vercel.json",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "mcp-server": "tsx src/simple-mcp-server.ts",
+    "mcp-server": "tsx src/desktop-mcp-server.ts",
     "mcp-server-full": "tsx src/mcp/server.ts",
     "mcp-server-remote": "tsx src/remote-mcp-server.ts",
     "api-server": "tsx src/api/server.ts",

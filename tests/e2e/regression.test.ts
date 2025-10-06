@@ -136,7 +136,7 @@ describe('Regression Tests', () => {
 
   describe('Stdio Communication', () => {
     it('should communicate via stdio correctly', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       const response = await client.sendRequest('initialize', {
@@ -151,7 +151,7 @@ describe('Regression Tests', () => {
     }, TEST_TIMEOUT);
 
     it('should handle multiple rapid stdin writes', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       const requests = Array.from({ length: 5 }, () => client.sendRequest('ping'));
@@ -167,7 +167,7 @@ describe('Regression Tests', () => {
 
   describe('Environment Variable Handling', () => {
     it('should work with environment variables from process.env', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
 
       // Verify required env vars are present
       expect(process.env.TURSO_URL).toBeDefined();
@@ -185,7 +185,7 @@ describe('Regression Tests', () => {
 
   describe('Claude Desktop Integration Patterns', () => {
     it('should match expected tool schema format', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       const response = await client.sendRequest('tools/list');
@@ -207,7 +207,7 @@ describe('Regression Tests', () => {
     }, TEST_TIMEOUT);
 
     it('should return tool results in expected format', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       const response = await client.callTool('get_memory_stats');
@@ -226,7 +226,7 @@ describe('Regression Tests', () => {
 
   describe('Backward Compatibility', () => {
     it('should support legacy memory type format', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       // Test with string type (legacy format)
@@ -243,7 +243,7 @@ describe('Regression Tests', () => {
     }, TEST_TIMEOUT);
 
     it('should support decimal importance values', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       // Test with decimal importance (0-1 range)
@@ -259,7 +259,7 @@ describe('Regression Tests', () => {
     }, TEST_TIMEOUT);
 
     it('should handle metadata as object', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       const response = await client.callTool('store_memory', {
@@ -279,7 +279,7 @@ describe('Regression Tests', () => {
     }, TEST_TIMEOUT);
 
     it('should handle tags as array', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       const response = await client.callTool('store_memory', {
@@ -296,7 +296,7 @@ describe('Regression Tests', () => {
   describe('Error Recovery', () => {
     it('should recover from database connection issues gracefully', async () => {
       // This test ensures server doesn't crash on DB errors
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       // Even if database has issues, server should respond
@@ -307,7 +307,7 @@ describe('Regression Tests', () => {
     }, TEST_TIMEOUT);
 
     it('should continue operating after tool execution errors', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       // Cause an error with invalid ID
@@ -325,7 +325,7 @@ describe('Regression Tests', () => {
 
   describe('Known Issues Prevention', () => {
     it('should not crash on malformed JSON-RPC requests', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       // Server should handle this and respond with parse error
@@ -346,7 +346,7 @@ describe('Regression Tests', () => {
 
     it('should handle missing OpenAI API key gracefully', async () => {
       // This test verifies the server starts even if embeddings might fail
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       // Server should initialize successfully
@@ -357,7 +357,7 @@ describe('Regression Tests', () => {
     }, TEST_TIMEOUT);
 
     it('should handle concurrent tool calls without race conditions', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       await client.startWithNode(serverPath);
 
       // Execute multiple operations concurrently
@@ -382,7 +382,7 @@ describe('Regression Tests', () => {
 
   describe('Build Output Validation', () => {
     it('should have correct build artifacts', () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       expect(existsSync(serverPath)).toBe(true);
 
       // Verify it's executable
@@ -390,7 +390,7 @@ describe('Regression Tests', () => {
     });
 
     it('should use ES modules', async () => {
-      const serverPath = resolve(process.cwd(), 'dist/simple-mcp-server.js');
+      const serverPath = resolve(process.cwd(), 'dist/desktop-mcp-server.js');
       const fs = await import('fs');
       const content = fs.readFileSync(serverPath, 'utf-8');
 

@@ -25,7 +25,7 @@
 **Changes**:
 - Changed from wrapper script to direct node execution
 - Updated command from `mcp-server-wrapper.sh` to `node`
-- Added args array: `["dist/simple-mcp-server.js"]`
+- Added args array: `["dist/desktop-mcp-server.js"]`
 - Preserved all environment variables
 
 **Result**: Server now starts correctly in Claude Desktop

@@ -337,7 +337,7 @@ jobs:
 ### Adding New Tools
 When adding a new MCP tool:
 
-1. Add tool definition to `simple-mcp-server.ts`
+1. Add tool definition to `desktop-mcp-server.ts`
 2. Add E2E test in `mcp-server.e2e.test.ts`
 3. Add regression test if needed
 4. Update this documentation

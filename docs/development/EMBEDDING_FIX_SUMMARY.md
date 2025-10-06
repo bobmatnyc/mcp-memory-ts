@@ -96,7 +96,7 @@ return {
 };
 ```
 
-### 4. New MCP Tool (src/simple-mcp-server.ts)
+### 4. New MCP Tool (src/desktop-mcp-server.ts)
 
 Added `update_missing_embeddings` tool for manual batch updates:
 
@@ -152,7 +152,7 @@ npx tsx tools/test-embedding-generation.ts
    - Enhanced error messages with specific troubleshooting hints
    - Added emoji indicators for log clarity
 
-3. **src/simple-mcp-server.ts**
+3. **src/desktop-mcp-server.ts**
    - Added `update_missing_embeddings` MCP tool
    - Enhanced `get_memory_stats` with visual indicators
    - Improved user feedback for memory storage operations

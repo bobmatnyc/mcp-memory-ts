@@ -103,7 +103,7 @@ MCP_DEBUG=1  # Enable debug logging
      "mcpServers": {
        "memory-ts": {
          "command": "node",
-         "args": ["/path/to/mcp-memory-ts/dist/simple-mcp-server.js"],
+         "args": ["/path/to/mcp-memory-ts/dist/desktop-mcp-server.js"],
          "env": {
            "TURSO_URL": "your-database-url",
            "TURSO_AUTH_TOKEN": "your-auth-token",
@@ -159,11 +159,11 @@ MCP_DEBUG=1  # Enable debug logging
 ```bash
 # Test tools list
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | \
-  node dist/simple-mcp-server.js
+  node dist/desktop-mcp-server.js
 
 # Test memory add
 echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"memory_add","arguments":{"title":"Test","content":"Test memory"}}}' | \
-  node dist/simple-mcp-server.js
+  node dist/desktop-mcp-server.js
 ```
 
 ### 2. Verify Claude Desktop Integration
@@ -219,7 +219,7 @@ If deployment fails:
 
 Enable detailed logging:
 ```bash
-MCP_DEBUG=1 node dist/simple-mcp-server.js
+MCP_DEBUG=1 node dist/desktop-mcp-server.js
 ```
 
 ## 📞 Support

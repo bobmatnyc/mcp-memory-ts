@@ -360,7 +360,7 @@ The MCP Memory TypeScript server v1.1.6 is fully functional and ready for Claude
 - Documentation: https://github.com/your-repo/mcp-memory-ts
 - Configuration: ~/.mcp-memory/config.json
 - Database: Turso (libsql://ai-memory-bobmatnyc.aws-us-east-1.turso.io)
-- MCP Server: /Users/masa/.nvm/versions/node/v20.19.0/lib/node_modules/mcp-memory-ts/dist/simple-mcp-server.js
+- MCP Server: /Users/masa/.nvm/versions/node/v20.19.0/lib/node_modules/mcp-memory-ts/dist/desktop-mcp-server.js
 
 ---
 

@@ -182,12 +182,12 @@ All 5 critical criteria met for production deployment:
 ### ✅ FIXED: Type System Corruption
 **Previous State:** Memory types defaulting to 'semantic'
 **Current State:** All types preserved exactly as stored
-**Fix Location:** src/simple-mcp-server.ts lines 356-380
+**Fix Location:** src/desktop-mcp-server.ts lines 356-380
 
 ### ✅ FIXED: Importance Value Defaults
 **Previous State:** Importance defaulting to 0.5
 **Current State:** Exact decimal values preserved (0.1, 0.75, etc.)
-**Fix Location:** src/simple-mcp-server.ts lines 360-369
+**Fix Location:** src/desktop-mcp-server.ts lines 360-369
 
 ### ✅ FIXED: Multi-Word Search
 **Previous State:** Multi-word searches returning no results

@@ -253,7 +253,7 @@ npm test -- tests/unit/cost-tracking.test.ts
 - `src/database/schema.ts` - Added `api_usage_tracking` table
 - `src/utils/embeddings.ts` - Enhanced with cost tracking
 - `src/core/memory-core.ts` - Pass userId to embeddings
-- `src/simple-mcp-server.ts` - Added `get_daily_costs` tool
+- `src/desktop-mcp-server.ts` - Added `get_daily_costs` tool
 - `package.json` - Added `tiktoken` dependency
 
 ## Support

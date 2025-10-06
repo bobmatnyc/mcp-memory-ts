@@ -60,7 +60,7 @@ Created a comprehensive compatibility layer providing:
 4. `scripts/test-mcp-integration.ts` - MCP server integration tests (new)
 
 ## Files NOT Modified (Work As-Is)
-- `src/simple-mcp-server.ts` - MCP server implementation
+- `src/desktop-mcp-server.ts` - MCP server implementation
 - `src/core/memory-core.ts` - Core memory logic
 - `src/models/schemas.ts` - Zod validation schemas
 - `src/types/base.ts` - TypeScript type definitions

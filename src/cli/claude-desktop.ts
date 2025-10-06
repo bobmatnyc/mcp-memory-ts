@@ -141,7 +141,7 @@ function saveClaudeDesktopConfig(config: ClaudeDesktopConfig): boolean {
 function getMcpServerPath(): string {
   // Try to find the dist directory relative to this file
   const projectRoot = resolve(__dirname, '../..');
-  const serverPath = join(projectRoot, 'dist/simple-mcp-server.js');
+  const serverPath = join(projectRoot, 'dist/desktop-mcp-server.js');
 
   if (!existsSync(serverPath)) {
     throw new Error(`MCP server not found at ${serverPath}. Run 'npm run build' first.`);

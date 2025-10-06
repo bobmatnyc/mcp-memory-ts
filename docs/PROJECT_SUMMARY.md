@@ -92,7 +92,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "memory-ts": {
       "command": "node",
-      "args": ["/absolute/path/to/mcp-memory-ts/dist/simple-mcp-server.js"],
+      "args": ["/absolute/path/to/mcp-memory-ts/dist/desktop-mcp-server.js"],
       "env": {
         "TURSO_URL": "your-database-url",
         "TURSO_AUTH_TOKEN": "your-auth-token",
@@ -119,7 +119,7 @@ mcp-memory-ts/
 │   ├── mcp/                # MCP server implementation
 │   ├── api/                # REST API server
 │   ├── utils/              # Vector search utilities
-│   └── simple-mcp-server.ts # Working minimal MCP server
+│   └── desktop-mcp-server.ts # Working minimal MCP server
 ├── tests/                  # Comprehensive test suite
 │   ├── unit/               # Unit tests including buffer tests
 │   └── integration/        # Integration tests

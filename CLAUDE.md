@@ -181,7 +181,7 @@ src/
 ├── api/           # REST API server
 ├── cli/           # CLI tool (init, Claude Desktop integration)
 ├── utils/         # Utilities and embeddings
-└── simple-mcp-server.ts  # Main MCP entry point
+└── desktop-mcp-server.ts  # Main MCP entry point
 
 scripts/
 ├── migrate-schema-optimization.ts  # Schema migration tool
@@ -250,7 +250,7 @@ CLERK_SECRET_KEY=your-clerk-secret-key
 ## Development Workflows
 
 ### Adding New Tools
-1. Define tool schema in `simple-mcp-server.ts`
+1. Define tool schema in `desktop-mcp-server.ts`
 2. Implement handler in `handleToolsCall` method
 3. Add corresponding method to `MemoryCore`
 4. Write tests for both MCP and core functionality
@@ -349,7 +349,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "memory-ts": {
       "command": "node",
-      "args": ["/absolute/path/to/mcp-memory-ts/dist/simple-mcp-server.js"],
+      "args": ["/absolute/path/to/mcp-memory-ts/dist/desktop-mcp-server.js"],
       "env": {
         "TURSO_URL": "your-database-url",
         "TURSO_AUTH_TOKEN": "your-auth-token",
@@ -491,7 +491,7 @@ yarn install
 - Run `mcp-memory init` to create config
 - Build with `npm run build-full` (not just `build`)
 - Check config exists: `~/.mcp-memory/config.json`
-- Verify server built: `dist/simple-mcp-server.js`
+- Verify server built: `dist/desktop-mcp-server.js`
 - Check absolute paths in Claude Desktop config
 - Review CLI logs for specific errors
 
@@ -529,7 +529,7 @@ yarn install
 ## Key Files & Responsibilities
 
 ### Core Files
-- `simple-mcp-server.ts` - Main MCP server entry point (use this for Claude Desktop)
+- `desktop-mcp-server.ts` - Main MCP server entry point (use this for Claude Desktop)
 - `core/memory-core.ts` - Core memory operations and business logic
 - `database/operations.ts` - Database layer and query operations
 - `database/schema.ts` - Database schema definitions
