@@ -197,9 +197,22 @@ async function upsertMacOSContact(vcard: VCardData, existingUuid?: string): Prom
 
 /**
  * Escape special characters for AppleScript
+ * Order matters: backslashes first, then quotes, then newlines
  */
 function escapeAppleScript(text: string): string {
-  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  if (!text) return '';
+
+  return text
+    // Escape backslashes first (must be first to avoid double-escaping!)
+    .replace(/\\/g, '\\\\')
+    // Escape double quotes (for property values in AppleScript)
+    .replace(/"/g, '\\"')
+    // Escape single quotes/apostrophes (CRITICAL: breaks shell command if not escaped)
+    .replace(/'/g, "\\'")
+    // Escape newlines for multi-line strings
+    .replace(/\n/g, '\\n')
+    // Escape carriage returns
+    .replace(/\r/g, '\\r');
 }
 
 /**
