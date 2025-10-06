@@ -1,9 +1,12 @@
 # MCP Memory TypeScript - Claude Agent Instructions
+# Archived Version: v1.1.6
+# Backup Date: 2025-10-06
+# Original Last Updated: 2025-10-02
 
 **Project Type**: MCP Server / TypeScript Library
 **Purpose**: Cloud-based vector memory service for AI assistants via Model Context Protocol
 **Location**: `/Users/masa/Projects/managed/mcp-memory-ts`
-**Version**: 1.3.0 (published to npm)
+**Version**: 1.1.6 (published to npm)
 **Status**: Production-ready with comprehensive test coverage
 
 ## 🔴 CRITICAL Requirements
@@ -19,8 +22,7 @@
 - **Multi-tenant**: User isolation is MANDATORY for security
 - **Schema Migrations**: Use migration scripts in `scripts/` directory, never modify schema directly
 - **Transaction Safety**: Wrap critical operations in transactions
-- **Schema Optimization**: v1.3.0 includes optimized schema - use migration tools for updates
-- **User Isolation**: Critical security measures enforced (v1.2.1+ security patches applied)
+- **Schema Optimization**: v1.1.6 includes optimized schema - use migration tools for updates
 
 ### OpenAI Integration
 - **Embeddings API**: Required for vector search functionality (text-embedding-3-small model)
@@ -147,29 +149,6 @@ mcp-memory import-vcard contacts.vcf --user-email user@example.com
 
 See [CLI-GUIDE.md](./docs/guides/CLI-GUIDE.md) for complete CLI documentation.
 
-### Web Interface Commands
-
-The project includes a modern Next.js web interface for visual memory management:
-
-**Setup web interface:**
-```bash
-./scripts/setup-web.sh
-```
-
-**Start web development server:**
-```bash
-cd web
-npm run dev
-```
-
-**Build web interface for production:**
-```bash
-cd web
-npm run build
-```
-
-See [WEB_INTERFACE.md](./docs/features/WEB_INTERFACE.md) for complete web interface documentation.
-
 ### Project Structure
 ```
 src/
@@ -190,19 +169,7 @@ scripts/
 
 docs/
 ├── _archive/      # Archived documentation versions
-├── features/      # Feature documentation
-├── guides/        # User guides
-├── security/      # Security and authentication
-├── deployment/    # Deployment guides
-├── schema/        # Database schema documentation
-├── testing/       # Testing and QA reports
 └── MASTER_PLAN.md # Project roadmap and architecture
-
-web/
-├── app/           # Next.js app directory
-├── components/    # React components
-├── lib/           # Utilities and integrations
-└── public/        # Static assets
 ```
 
 ### Environment Configuration
@@ -223,10 +190,6 @@ DEFAULT_USER_EMAIL=user@example.com
 # Embedding Monitoring (v1.1.0+)
 ENABLE_EMBEDDING_MONITOR=true
 EMBEDDING_MONITOR_INTERVAL=60000
-
-# Web Interface (v1.3.0+)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
-CLERK_SECRET_KEY=your-clerk-secret-key
 ```
 
 ## ⚪ OPTIONAL Enhancements
@@ -243,9 +206,6 @@ CLERK_SECRET_KEY=your-clerk-secret-key
 - Export/import functionality (vCard implemented)
 - Analytics and insights
 - Multi-language support
-- Web interface for visual memory management (v1.3.0+)
-- Bidirectional contacts synchronization with LLM deduplication (v1.3.0+)
-- Multi-user authentication with Clerk (v1.3.0+)
 
 ## Development Workflows
 
@@ -302,25 +262,7 @@ npm run migrate:schema:rollback
 4. Verify Claude Desktop config updates work
 5. Test credential validation and error handling
 
-### Web Interface Development
-1. Set up web environment: `./scripts/setup-web.sh`
-2. Configure Clerk authentication (see [CLERK_IMPLEMENTATION_NOTES.md](./docs/security/CLERK_IMPLEMENTATION_NOTES.md))
-3. Build web interface: `cd web && npm run build`
-4. Test locally: `cd web && npm run dev`
-5. Deploy to Vercel or other hosting platforms
-6. See deployment options: [DEPLOYMENT_COMPARISON.md](./docs/deployment/DEPLOYMENT_COMPARISON.md)
-
 ## Deployment Guide
-
-### Deployment Options Overview
-
-The project supports multiple deployment scenarios:
-- **Claude Desktop Integration**: Local MCP server for personal use
-- **Web Interface**: Multi-user web application with Clerk authentication
-- **API Server**: RESTful API for remote access
-- **Hybrid Deployment**: Combine multiple deployment methods
-
-See [DEPLOYMENT_COMPARISON.md](./docs/deployment/DEPLOYMENT_COMPARISON.md) for detailed comparison and recommendations.
 
 ### Claude Desktop Integration (Recommended Method)
 
@@ -381,15 +323,6 @@ mcp-memory install
 5. Configure environment variables
 6. Monitor logs and performance
 7. Set up embedding monitor for automatic updates
-
-### Web Interface Deployment
-1. Set up Clerk authentication project
-2. Configure environment variables (see [CLERK_MIGRATION_SUMMARY.md](./docs/security/CLERK_MIGRATION_SUMMARY.md))
-3. Build web interface: `cd web && npm run build`
-4. Deploy to Vercel: `vercel deploy` or other platforms
-5. Configure production database and API endpoints
-6. Test authentication and user isolation
-7. Monitor performance and security
 
 ## Testing Strategy
 
@@ -499,32 +432,11 @@ yarn install
 **Problem**: Slow queries or high memory usage
 **Solutions**:
 - Profile vector search operations (check similarity threshold)
-- Check database index usage (schema v1.3.0 optimized)
+- Check database index usage (schema v1.1.6 optimized)
 - Monitor memory consumption during embedding generation
 - Optimize batch operations (reduce batch sizes)
 - Use connection pooling for high-traffic scenarios
 - Cache frequently accessed data
-
-### Web Interface Issues
-**Problem**: Web interface not loading or authentication failing
-**Solutions**:
-- Verify Clerk configuration and API keys
-- Check Next.js build output for errors
-- Review browser console for client-side errors
-- Verify database connection from web server
-- Check CORS settings for API access
-- Review [WEB_INTERFACE.md](./docs/features/WEB_INTERFACE.md) for setup issues
-- Check [CLERK_IMPLEMENTATION_NOTES.md](./docs/security/CLERK_IMPLEMENTATION_NOTES.md) for auth issues
-
-### Contacts Sync Issues
-**Problem**: Contact synchronization failing or duplicates
-**Solutions**:
-- Review sync logs for specific error messages
-- Check LLM deduplication settings and API access
-- Verify contact data format and required fields
-- Monitor sync performance and batch sizes
-- Review conflict resolution settings
-- See [CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md](./docs/features/CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md)
 
 ## Key Files & Responsibilities
 
@@ -541,12 +453,6 @@ yarn install
 - `cli/init.ts` - Interactive configuration wizard
 - `cli/claude-desktop.ts` - Claude Desktop integration commands
 - `cli/help.ts` - Help text and usage documentation
-
-### Web Interface Files
-- `web/app/` - Next.js app directory with pages and layouts
-- `web/components/` - Reusable React components
-- `web/lib/` - Utility functions and integrations
-- `scripts/setup-web.sh` - Web interface setup script
 
 ### Migration Files
 - `scripts/migrate-schema-optimization.ts` - Schema migration tool
@@ -572,11 +478,8 @@ Remember these project-specific patterns:
 ### Security Patterns
 - Always check user authentication/authorization by email
 - Validate user_email in all database operations
-- Isolate user data in multi-tenant context (CRITICAL: v1.2.1 security patches applied)
+- Isolate user data in multi-tenant context
 - Never expose sensitive data in error messages
-- Use Clerk for web interface authentication and session management
-- Implement proper CORS policies for API access
-- Validate all input on both client and server side
 
 ### Database Patterns
 - Wrap database operations in try/catch with proper error messages
@@ -616,14 +519,9 @@ npm run mcp-server            # Start MCP server
 MCP_DEBUG=1 npm run mcp-server # Start with debug logging
 
 # CLI Tool
-mcp-memory init                 # Initialize configuration
-mcp-memory install              # Install to Claude Desktop
-mcp-memory status               # Check installation
-
-# Web Interface
-cd web && npm run dev           # Start web dev server
-cd web && npm run build         # Build for production
-./scripts/setup-web.sh          # Setup web environment
+mcp-memory init               # Initialize configuration
+mcp-memory install     # Install to Claude Desktop
+mcp-memory status      # Check installation
 
 # Quality Checks
 npm run lint:fix              # Fix linting issues
@@ -680,25 +578,7 @@ mcp-memory update
 
 ## Version History & Changes
 
-### v1.3.0 (Current)
-- Bidirectional Contacts Sync with LLM-powered deduplication
-- Web interface for memory management (Next.js app in `web/`)
-- Clerk authentication integration for multi-user support
-- Enhanced deployment options with comparison guide
-- Contact synchronization performance optimizations
-- Improved documentation organization
-
-### v1.2.1
-- **CRITICAL SECURITY PATCH**: Fix user isolation vulnerabilities
-- Enhanced multi-tenant security enforcement
-- Improved data protection mechanisms
-
-### v1.2.0
-- Security enhancements for user isolation
-- Improved authentication and authorization
-- Enhanced data protection
-
-### v1.1.6
+### v1.1.6 (Current)
 - Full CLI tool with Claude Desktop integration
 - Interactive configuration wizard
 - vCard export/import for entities
@@ -733,18 +613,6 @@ mcp-memory update
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Deployment guide
 - [CLI-GUIDE.md](./docs/guides/CLI-GUIDE.md) - Complete CLI documentation
 - [MIGRATION_QUICK_START.md](./docs/guides/MIGRATION_QUICK_START.md) - Migration guide
-- [CONTACTS_SYNC_QUICK_START.md](./docs/guides/CONTACTS_SYNC_QUICK_START.md) - Contacts sync guide
-
-### Features
-- [WEB_INTERFACE.md](./docs/features/WEB_INTERFACE.md) - Web interface documentation
-- [CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md](./docs/features/CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md) - Sync optimization
-
-### Security
-- [CLERK_IMPLEMENTATION_NOTES.md](./docs/security/CLERK_IMPLEMENTATION_NOTES.md) - Clerk setup guide
-- [CLERK_MIGRATION_SUMMARY.md](./docs/security/CLERK_MIGRATION_SUMMARY.md) - Auth migration guide
-
-### Deployment
-- [DEPLOYMENT_COMPARISON.md](./docs/deployment/DEPLOYMENT_COMPARISON.md) - Deployment options comparison
 
 ### Schema Documentation
 - [SCHEMA_OPTIMIZATION_GUIDE.md](./docs/schema/SCHEMA_OPTIMIZATION_GUIDE.md) - Schema design
@@ -792,8 +660,8 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 
 ---
 
-**Last Updated**: 2025-10-06
-**Current Version**: 1.3.0
+**Last Updated**: 2025-10-02
+**Current Version**: 1.1.6
 **Status**: Production-ready with 95.2% test coverage
 
 *This MCP memory server provides persistent, searchable memory for AI assistants using vector embeddings and semantic search capabilities. It includes a comprehensive CLI tool for easy setup and management.*

@@ -425,8 +425,8 @@ class SimpleMCPServer {
 
           if (addResult.status === MCPToolResultStatus.SUCCESS) {
             const memoryData = addResult.data as any;
-            const embeddingStatus = memoryData?.hasEmbedding ? '✅ with embedding' : '⚠️  without embedding (will be generated)';
-            resultText = `✅ Memory stored successfully ${embeddingStatus}!\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nType: ${inputType}\nImportance: ${importanceValue}`;
+            const embeddingStatus = memoryData?.hasEmbedding ? ' ✅ with embedding' : ' ⚠️  without embedding (will be generated)';
+            resultText = `✅ Memory stored successfully!${embeddingStatus}\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nType: ${inputType}\nImportance: ${importanceValue}`;
           } else {
             resultText = `❌ Failed to store memory: ${addResult.error || addResult.message}`;
           }

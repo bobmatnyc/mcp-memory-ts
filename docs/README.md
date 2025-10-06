@@ -62,6 +62,7 @@ Security reports, audits, and vulnerability documentation:
 - Vulnerability assessments
 - Security audit results
 - Incident reports
+- Authentication setup guides (Clerk, OAuth)
 
 **Add new security docs here when:**
 - Fixing security vulnerabilities
@@ -69,24 +70,38 @@ Security reports, audits, and vulnerability documentation:
 - Documenting security incidents
 - Creating security guidelines
 
+#### `/docs/features/`
+Feature-specific documentation and guides:
+- Web interface documentation
+- Contacts sync features
+- Performance optimization guides
+- Feature implementation details
+
+**Add new feature docs here when:**
+- Implementing new features
+- Documenting feature capabilities
+- Creating feature guides
+- Analyzing feature performance
+
+#### `/docs/deployment/`
+Deployment guides and platform comparisons:
+- Deployment comparison guides
+- Platform-specific instructions
+- Deployment scenarios
+- Infrastructure setup
+
+**Add new deployment docs here when:**
+- Adding new deployment options
+- Documenting platform integrations
+- Creating deployment guides
+- Comparing deployment strategies
+
 #### `/docs/development/`
 Internal development documentation:
 - Architecture decisions
 - Development workflows
 - Code organization
 - Internal APIs
-
-#### `/docs/oauth/`
-OAuth and authentication-specific documentation:
-- OAuth setup guides
-- Authentication flows
-- Token management
-
-#### `/docs/vcard/`
-vCard integration documentation:
-- vCard format specifications
-- Import/export guides
-- Contact sync documentation
 
 #### `/docs/_archive/`
 Historical documentation and deprecated guides:
@@ -171,15 +186,17 @@ All documentation should:
 | Documentation Type | Location | Example |
 |-------------------|----------|---------|
 | Main project docs | `/README.md`, `/CLAUDE.md`, `/DEPLOYMENT.md` | Main README |
-| User guides | `/docs/guides/` | CLI_GUIDE.md |
+| User guides | `/docs/guides/` | CLI_GUIDE.md, CONTACTS_SYNC_QUICK_START.md |
+| Feature docs | `/docs/features/` | WEB_INTERFACE.md, CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md |
+| Deployment docs | `/docs/deployment/` | DEPLOYMENT_COMPARISON.md |
 | Test reports | `/docs/testing/` | QA_TEST_REPORT.md |
 | Schema docs | `/docs/schema/` | SCHEMA_OPTIMIZATION_GUIDE.md |
-| Security docs | `/docs/security/` | SECURITY_FIX_REPORT.md |
+| Security docs | `/docs/security/` | SECURITY_FIX_REPORT.md, CLERK_IMPLEMENTATION_NOTES.md |
 | Development docs | `/docs/development/` | Architecture decisions |
 | Historical docs | `/docs/_archive/` | Deprecated guides |
 
 ---
 
-**Last Updated**: 2025-10-03
+**Last Updated**: 2025-10-06
 **Maintained By**: Project maintainers
-**Version**: 1.0.0
+**Version**: 1.1.0

@@ -284,9 +284,7 @@ export function simpleDuplicationCheck(
 
   // Organization match
   if (contact1.organization && contact2.organization) {
-    if (
-      contact1.organization.toLowerCase().trim() === contact2.organization.toLowerCase().trim()
-    ) {
+    if (contact1.organization.toLowerCase().trim() === contact2.organization.toLowerCase().trim()) {
       confidence += 15;
       reasons.push('Same organization');
     }

@@ -5,9 +5,14 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
-import { join, resolve } from 'path';
+import { join, resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { colors, icons, success, error, warning, info, section, keyValue } from './colors.js';
 import type { UserConfig } from '../types/sync-config.js';
+
+// ESM-compatible __dirname replacement
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 interface ClaudeDesktopConfig {
   mcpServers: {

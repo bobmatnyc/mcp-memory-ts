@@ -11,6 +11,7 @@ A modern TypeScript implementation of a cloud-based vector memory service for AI
 - **🏢 Entity Management**: Track people, organizations, projects, and relationships
 - **📚 Interaction History**: Store and retrieve conversation history with context
 - **📱 Contacts Sync**: True bidirectional sync with macOS Contacts using LLM-based deduplication
+- **🌐 Web Interface**: Modern Next.js web UI for visual memory management (v1.3.0+)
 - **🔌 MCP Protocol**: JSON-RPC 2.0 over stdio (local) and HTTP (remote)
 - **🌐 REST API**: HTTP interface for web applications
 - **🔐 OAuth Integration**: Clerk authentication for remote access with 95.2% test coverage
@@ -26,8 +27,15 @@ src/
 ├── core/           # Core memory logic and vector search
 ├── mcp/           # MCP server implementation
 ├── api/           # REST API server
+├── cli/           # CLI tool
 ├── utils/         # Utility functions
 └── index.ts       # Main entry point
+
+web/
+├── app/           # Next.js app directory
+├── components/    # React components
+├── lib/           # Utilities and integrations
+└── public/        # Static assets
 ```
 
 ## Quick Start
@@ -74,6 +82,10 @@ DEFAULT_USER_EMAIL=user@example.com
 # Automatic Embedding Updates (v1.1.0+)
 ENABLE_EMBEDDING_MONITOR=true  # Enable background monitoring
 EMBEDDING_MONITOR_INTERVAL=60000  # Check every 60 seconds
+
+# Web Interface (v1.3.0+)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret-key
 ```
 
 ## Usage
@@ -153,6 +165,28 @@ The remote MCP server will be available at `http://localhost:3003` with:
 
 See [docs/REMOTE_MCP_SETUP.md](./docs/REMOTE_MCP_SETUP.md) for detailed setup instructions.
 
+### Web Interface (v1.3.0+)
+
+Modern Next.js web interface for visual memory management:
+
+```bash
+# Setup web interface
+./scripts/setup-web.sh
+
+# Start development server
+cd web
+npm run dev
+```
+
+The web interface will be available at `http://localhost:3001` with:
+- **Authentication**: Clerk OAuth for multi-user support
+- **Visual Search**: Interactive memory browser with semantic search
+- **Entity Management**: Visual relationship mapping
+- **Real-time Sync**: Bidirectional sync with MCP server
+- **Contacts Integration**: Import/export with LLM deduplication
+
+See [docs/features/WEB_INTERFACE.md](./docs/features/WEB_INTERFACE.md) for complete setup and deployment guide.
+
 ### REST API Server
 
 ```bash
@@ -206,7 +240,20 @@ See [docs/testing/QA_TEST_REPORT.md](./docs/testing/QA_TEST_REPORT.md) for detai
 - [Deployment Guide](./DEPLOYMENT.md) - Production deployment
 - [CLI Guide](./docs/guides/CLI-GUIDE.md) - Command-line interface
 - [Contacts Sync Guide](./docs/guides/CONTACTS_SYNC_GUIDE.md) - Bidirectional sync with macOS Contacts
+- [Contacts Sync Quick Start](./docs/guides/CONTACTS_SYNC_QUICK_START.md) - Quick start for contacts sync
 - [Migration Guide](./docs/guides/MIGRATION_QUICK_START.md) - Schema migrations
+
+### Features
+- [Web Interface](./docs/features/WEB_INTERFACE.md) - Web UI setup and usage
+- [Contacts Sync Performance](./docs/features/CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md) - Sync optimization
+
+### Security
+- [Clerk Implementation](./docs/security/CLERK_IMPLEMENTATION_NOTES.md) - Clerk setup guide
+- [Clerk Migration](./docs/security/CLERK_MIGRATION_SUMMARY.md) - Auth migration guide
+- [Security Fixes](./docs/security/SECURITY_FIX_REPORT.md) - v1.2.1 security patches
+
+### Deployment
+- [Deployment Comparison](./docs/deployment/DEPLOYMENT_COMPARISON.md) - Compare deployment options
 
 ### Schema & Database
 - [Schema Optimization](./docs/schema/SCHEMA_OPTIMIZATION_GUIDE.md) - Database design
@@ -219,14 +266,13 @@ See [docs/testing/QA_TEST_REPORT.md](./docs/testing/QA_TEST_REPORT.md) for detai
 
 ### Additional Documentation
 - [docs/](./docs/) - Complete documentation library
-  - API Server Setup
-  - Claude Desktop Usage
-  - Cost Tracking
-  - Features Documentation
-  - Remote MCP Setup
-  - Testing Guides
-  - Unified Architecture
-  - Vercel Deployment
+  - [features/](./docs/features/) - Feature documentation
+  - [guides/](./docs/guides/) - User guides and quick starts
+  - [security/](./docs/security/) - Authentication and security
+  - [deployment/](./docs/deployment/) - Deployment options
+  - [schema/](./docs/schema/) - Database schema documentation
+  - [testing/](./docs/testing/) - Test reports and QA
+  - [_archive/](./docs/_archive/) - Archived documentation versions
 
 ## License
 

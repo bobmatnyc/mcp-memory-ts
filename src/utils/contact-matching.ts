@@ -48,10 +48,7 @@ export function extractMcpUuid(vcard: VCardData): string | null {
 /**
  * Match contacts by UUID first, then fall back to other matching strategies
  */
-export function matchContacts(
-  mcpEntities: Entity[],
-  externalContacts: VCardData[]
-): MatchResult {
+export function matchContacts(mcpEntities: Entity[], externalContacts: VCardData[]): MatchResult {
   const matched: MatchPair[] = [];
   const mcpUnmatched: Entity[] = [];
   const externalUnmatched: VCardData[] = [];

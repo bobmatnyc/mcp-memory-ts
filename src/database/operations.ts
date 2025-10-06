@@ -109,29 +109,25 @@ export class DatabaseOperations {
     // Use compatibility layer to map entity fields
     const mappedEntity = SchemaCompatibility.mapEntityForDatabase(entity);
 
-    // Generate UUID for the entity (entities table uses UUID as primary key)
-    const entityId = SchemaCompatibility.generateUUID();
-
-    // Only use columns that actually exist in the database
+    // Let database auto-generate ID (entities table uses INTEGER PRIMARY KEY AUTOINCREMENT)
     const sql = `
-      INSERT INTO entities (id, user_id, name, entity_type, person_type, description,
-                           first_name, last_name, company, title, contact_info,
-                           notes, tags, metadata, active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO entities (user_id, name, entity_type, person_type, description,
+                           company, title, email, phone, address, notes, tags, metadata,
+                           created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const result = await this.db.execute(sql, [
-      entityId,
       mappedEntity.user_id || mappedEntity.userId || null,
       mappedEntity.name,
       mappedEntity.entity_type || mappedEntity.entityType,
       mappedEntity.person_type || mappedEntity.personType || null,
       mappedEntity.description || null,
-      mappedEntity.first_name || null,
-      mappedEntity.last_name || null,
       mappedEntity.company || null,
       mappedEntity.title || null,
-      mappedEntity.contact_info || null, // Stores email/phone/address as JSON
+      mappedEntity.email || null,
+      mappedEntity.phone || null,
+      mappedEntity.address || null,
       mappedEntity.notes || null,
       typeof mappedEntity.tags === 'string'
         ? mappedEntity.tags
@@ -139,19 +135,18 @@ export class DatabaseOperations {
       typeof mappedEntity.metadata === 'string'
         ? mappedEntity.metadata
         : stringifyMetadata(mappedEntity.metadata),
-      mappedEntity.active !== undefined ? (mappedEntity.active ? 1 : 0) : 1,
       mappedEntity.created_at || mappedEntity.createdAt || new Date().toISOString(),
       mappedEntity.updated_at || mappedEntity.updatedAt || new Date().toISOString(),
     ]);
 
-    return { ...entity, id: entityId };
+    return { ...entity, id: result.lastInsertRowid };
   }
 
   async getEntityById(id: number | string, userId: string): Promise<Entity | null> {
-    const result = await this.db.execute(
-      'SELECT * FROM entities WHERE id = ? AND user_id = ?',
-      [id, userId]
-    );
+    const result = await this.db.execute('SELECT * FROM entities WHERE id = ? AND user_id = ?', [
+      id,
+      userId,
+    ]);
     return result.rows.length > 0 ? this.mapRowToEntity(result.rows[0] as any) : null;
   }
 
@@ -223,19 +218,15 @@ export class DatabaseOperations {
     // Use compatibility layer to map memory fields
     const mappedMemory = SchemaCompatibility.mapMemoryForDatabase(memory);
 
-    // Generate a UUID for the TEXT PRIMARY KEY
-    const memoryId = SchemaCompatibility.generateUUID();
-
-    // Only use columns that actually exist in the database
+    // Let database auto-generate ID (memories table uses INTEGER PRIMARY KEY AUTOINCREMENT)
     const sql = `
-      INSERT INTO memories (id, user_id, title, content, memory_type, importance,
-                           tags, entity_ids, embedding, metadata, is_archived, active,
+      INSERT INTO memories (user_id, title, content, memory_type, importance,
+                           tags, entity_ids, embedding, metadata, is_archived,
                            created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await this.db.execute(sql, [
-      memoryId,
+    const result = await this.db.execute(sql, [
       mappedMemory.user_id || mappedMemory.userId || null,
       mappedMemory.title,
       mappedMemory.content,
@@ -258,19 +249,18 @@ export class DatabaseOperations {
         : mappedMemory.isArchived
           ? 1
           : 0,
-      mappedMemory.active !== undefined ? mappedMemory.active : 1,
       mappedMemory.created_at || mappedMemory.createdAt || new Date().toISOString(),
       mappedMemory.updated_at || mappedMemory.updatedAt || new Date().toISOString(),
     ]);
 
-    return { ...memory, id: memoryId };
+    return { ...memory, id: result.lastInsertRowid };
   }
 
   async getMemoryById(id: number | string, userId: string): Promise<Memory | null> {
-    const result = await this.db.execute(
-      'SELECT * FROM memories WHERE id = ? AND user_id = ?',
-      [id, userId]
-    );
+    const result = await this.db.execute('SELECT * FROM memories WHERE id = ? AND user_id = ?', [
+      id,
+      userId,
+    ]);
     return result.rows.length > 0 ? this.mapRowToMemory(result.rows[0] as any) : null;
   }
 

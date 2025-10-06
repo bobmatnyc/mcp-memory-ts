@@ -203,13 +203,7 @@ function resolveByMerge(conflict: SyncConflict): ConflictResolution {
   // Address: prefer external if present (more likely to be updated)
   if (ext.adr && ext.adr.length > 0) {
     const addr = ext.adr[0];
-    merged.address = [
-      addr.streetAddress,
-      addr.locality,
-      addr.region,
-      addr.postalCode,
-      addr.country,
-    ]
+    merged.address = [addr.streetAddress, addr.locality, addr.region, addr.postalCode, addr.country]
       .filter(Boolean)
       .join(', ');
   } else {
