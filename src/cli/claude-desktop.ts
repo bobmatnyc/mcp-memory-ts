@@ -139,12 +139,29 @@ function saveClaudeDesktopConfig(config: ClaudeDesktopConfig): boolean {
  * Get the path to the compiled MCP server
  */
 function getMcpServerPath(): string {
-  // Try to find the dist directory relative to this file
+  // Try global npm installation first
+  try {
+    const { execSync } = require('child_process');
+    const npmRoot = execSync('npm root -g', { encoding: 'utf-8' }).trim();
+    const globalPath = join(npmRoot, 'mcp-memory-ts', 'dist', 'desktop-mcp-server.js');
+
+    if (existsSync(globalPath)) {
+      return globalPath;
+    }
+  } catch (error) {
+    // Fall back to local development path if npm command fails
+  }
+
+  // For local development - try to find the dist directory relative to this file
   const projectRoot = resolve(__dirname, '../..');
-  const serverPath = join(projectRoot, 'dist/desktop-mcp-server.js');
+  const serverPath = join(projectRoot, 'dist', 'desktop-mcp-server.js');
 
   if (!existsSync(serverPath)) {
-    throw new Error(`MCP server not found at ${serverPath}. Run 'npm run build' first.`);
+    throw new Error(`MCP server not found. Tried:
+  - Global: $(npm root -g)/mcp-memory-ts/dist/desktop-mcp-server.js
+  - Local: ${serverPath}
+
+Run 'npm run build-full' first, or install globally with 'npm install -g mcp-memory-ts'`);
   }
 
   return serverPath;
