@@ -179,7 +179,7 @@ async function countContactsWithRetry(maxRetries: number = 3): Promise<number> {
       const countScript = `
         tell application "Contacts"
           launch
-          activate
+          -- Run in background (no activate)
           delay 0.5
           count people
         end tell
@@ -313,7 +313,7 @@ async function upsertMacOSContact(vcard: VCardData, existingUuid?: string): Prom
   const script = `
     tell application "Contacts"
       launch
-      activate
+      -- Run in background (no activate)
       delay 0.5
       set newPerson to make new person with properties {first name:"${escapeAppleScript(firstName)}", last name:"${escapeAppleScript(lastName)}"}
       ${email ? `make new email at end of emails of newPerson with properties {value:"${escapeAppleScript(email)}", label:"work"}` : ''}
