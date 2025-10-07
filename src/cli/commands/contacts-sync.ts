@@ -118,6 +118,13 @@ async function ensureContactsAppRunning(): Promise<void> {
     // Wait for app to be ready with retry logic
     const waitScript = `
       tell application "Contacts"
+        -- Launch if not running
+        if not running then
+          launch
+          delay 2
+        end if
+
+        -- Test if app is ready
         set maxAttempts to 15
         set attemptCount to 0
         set appReady to false
