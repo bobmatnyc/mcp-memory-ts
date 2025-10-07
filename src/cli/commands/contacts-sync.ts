@@ -74,18 +74,83 @@ function isMacOS(): boolean {
 }
 
 /**
+ * Ensure Contacts.app is running and ready
+ * This prevents "Application isn't running" (-600) errors
+ */
+async function ensureContactsAppRunning(): Promise<void> {
+  try {
+    const launchScript = `
+      tell application "Contacts"
+        launch
+        activate
+      end tell
+
+      -- Wait for app to be ready
+      delay 1
+    `;
+
+    await execAsync(`osascript -e '${launchScript}'`, {
+      timeout: 10000,
+      maxBuffer: 1024 * 1024,
+    });
+
+    console.log(colors.dim('  Contacts.app launched and ready'));
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to launch Contacts.app: ${errorMsg}`);
+  }
+}
+
+/**
+ * Count contacts with retry logic
+ * Retries up to maxRetries times if Contacts.app fails to respond
+ */
+async function countContactsWithRetry(maxRetries: number = 3): Promise<number> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const countScript = `
+        tell application "Contacts"
+          launch
+          activate
+          delay 0.5
+          count people
+        end tell
+      `;
+
+      const { stdout } = await execAsync(`osascript -e '${countScript}'`, {
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: 30000,
+      });
+
+      return parseInt(stdout.trim(), 10);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      if (attempt === maxRetries) {
+        throw new Error(
+          `Failed to count contacts after ${maxRetries} attempts: ${errorMsg}`
+        );
+      }
+
+      console.log(colors.dim(`  Retry ${attempt}/${maxRetries}...`));
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+
+  throw new Error('Failed to count contacts');
+}
+
+/**
  * Get all contacts from macOS Contacts as vCards (with batch loading)
  */
 async function getMacOSContacts(): Promise<VCardData[]> {
   console.log(`${icons.cycle} Counting macOS contacts...`);
 
-  // First, get total count
-  const countScript = `tell application "Contacts" to count people`;
-  const { stdout: countStr } = await execAsync(`osascript -e '${countScript}'`, {
-    maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-    timeout: 300000, // 5 minute timeout for large contact lists
-  });
-  const totalCount = parseInt(countStr.trim());
+  // Ensure Contacts.app is launched and ready
+  await ensureContactsAppRunning();
+
+  // Use retry logic for counting
+  const totalCount = await countContactsWithRetry();
 
   if (totalCount === 0) {
     return [];
@@ -179,6 +244,9 @@ async function upsertMacOSContact(vcard: VCardData, existingUuid?: string): Prom
   // We'll create a new contact and rely on macOS's built-in duplicate detection
   const script = `
     tell application "Contacts"
+      launch
+      activate
+      delay 0.5
       set newPerson to make new person with properties {first name:"${escapeAppleScript(firstName)}", last name:"${escapeAppleScript(lastName)}"}
       ${email ? `make new email at end of emails of newPerson with properties {value:"${escapeAppleScript(email)}", label:"work"}` : ''}
       ${phone ? `make new phone at end of phones of newPerson with properties {value:"${escapeAppleScript(phone)}", label:"work"}` : ''}
