@@ -332,7 +332,14 @@ async function upsertMacOSContact(vcard: VCardData, existingUuid?: string): Prom
 }
 
 /**
- * Escape special characters for AppleScript
+ * Escape special characters for AppleScript embedded in shell single quotes
+ *
+ * When AppleScript is embedded in osascript -e '...', we must use proper shell escaping.
+ * For single quotes in the data, we use '\'' which:
+ *   1. Ends the single-quoted string with '
+ *   2. Adds an escaped single quote \'
+ *   3. Starts a new single-quoted string with '
+ *
  * Order matters: backslashes first, then quotes, then newlines
  */
 function escapeAppleScript(text: string): string {
@@ -343,8 +350,9 @@ function escapeAppleScript(text: string): string {
     .replace(/\\/g, '\\\\')
     // Escape double quotes (for property values in AppleScript)
     .replace(/"/g, '\\"')
-    // Escape single quotes/apostrophes (CRITICAL: breaks shell command if not escaped)
-    .replace(/'/g, "\\'")
+    // Escape single quotes for shell single-quote context
+    // CRITICAL FIX: Use '\'' instead of \' to properly escape in shell single quotes
+    .replace(/'/g, "'\\''")
     // Escape newlines for multi-line strings
     .replace(/\n/g, '\\n')
     // Escape carriage returns

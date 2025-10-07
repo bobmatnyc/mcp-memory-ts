@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2025-10-07
+
+### Fixed
+- Fixed AppleScript single-quote escaping in shell command context for contacts export
+- Contacts with apostrophes (e.g., "O'Brien", "Bob's Phone") now export correctly to macOS Contacts
+- Resolved shell parsing error: "unexpected EOF while looking for matching quote"
+- Changed shell escape sequence from `\'` to `'\''` for POSIX compliance
+
 ## [1.3.0] - 2025-10-06
 
 ### Added
