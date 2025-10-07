@@ -75,29 +75,47 @@ function isMacOS(): boolean {
 
 /**
  * Ensure Contacts.app is running and ready
+ * Uses System Events to poll for process existence (more reliable than blind delays)
  * This prevents "Application isn't running" (-600) errors
  */
 async function ensureContactsAppRunning(): Promise<void> {
   try {
+    // Use System Events to check actual process existence (most reliable method)
     const launchScript = `
-      tell application "Contacts"
-        launch
-        activate
+      tell application "System Events"
+        if not (exists process "Contacts") then
+          tell application "Contacts" to launch
+
+          -- Wait up to 10 seconds for process to appear
+          set counter to 0
+          repeat until exists process "Contacts"
+            delay 0.5
+            set counter to counter + 1
+            if counter > 20 then
+              error "Contacts process did not start within 10 seconds"
+            end if
+          end repeat
+        end if
       end tell
 
-      -- Wait for app to be ready
+      -- Give the app a moment to fully initialize after process appears
       delay 1
+
+      return "ready"
     `;
 
     await execAsync(`osascript -e '${launchScript}'`, {
-      timeout: 10000,
+      timeout: 15000, // 15 seconds total timeout
       maxBuffer: 1024 * 1024,
     });
 
-    console.log(colors.dim('  Contacts.app launched and ready'));
+    console.log(colors.dim('  Contacts.app ready'));
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to launch Contacts.app: ${errorMsg}`);
+    throw new Error(
+      `Failed to launch Contacts.app: ${errorMsg}\n` +
+      `Please check: 1) Contacts.app is installed, 2) System Events has accessibility permissions`
+    );
   }
 }
 
