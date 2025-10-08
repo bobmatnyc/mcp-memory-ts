@@ -213,6 +213,11 @@ export class MemoryCore {
 
       const savedMemory = await this.dbOps.createMemory(memory);
 
+      // Validate that ID was properly assigned
+      if (!savedMemory.id || savedMemory.id === 'null' || savedMemory.id === 'undefined') {
+        throw new Error(`Memory created but ID is invalid: ${savedMemory.id}`);
+      }
+
       // Queue for embedding update if auto-update is enabled and no valid embedding was generated
       if (this.embeddingUpdater && (!embedding || embedding.length === 0)) {
         console.error(

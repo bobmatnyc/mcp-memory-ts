@@ -1,5 +1,22 @@
 # macOS Contacts Bidirectional Sync Guide
 
+## Quick Command Reference
+
+**Sync from MCP Memory to macOS Contacts:**
+```bash
+mcp-memory contacts sync --direction export --user-email YOUR_EMAIL
+```
+
+**Sync from macOS Contacts to MCP Memory:**
+```bash
+mcp-memory contacts sync --direction import --user-email YOUR_EMAIL
+```
+
+**Bidirectional sync (both ways):**
+```bash
+mcp-memory contacts sync --direction both --user-email YOUR_EMAIL
+```
+
 ## Overview
 
 The MCP Memory TypeScript CLI includes a comprehensive contacts synchronization system that provides **true bidirectional sync** between MCP Memory entities and macOS Contacts app. This feature uses advanced LLM-based deduplication to intelligently merge duplicate contacts.
@@ -90,12 +107,16 @@ mcp-memory contacts sync \
   --direction export
 ```
 
+**Note**: The `export` direction means MCP Memory → macOS Contacts (exporting FROM MCP Memory TO Contacts).
+
 #### Import only (macOS Contacts → MCP Memory)
 ```bash
 mcp-memory contacts sync \
   --user-email bob@matsuoka.com \
   --direction import
 ```
+
+**Note**: The `import` direction means macOS Contacts → MCP Memory (importing FROM Contacts TO MCP Memory).
 
 #### Lower threshold for more aggressive deduplication
 ```bash

@@ -152,11 +152,23 @@ mcp-memory export-vcard --user-email user@example.com -o contacts.vcf
 mcp-memory import-vcard contacts.vcf --user-email user@example.com
 ```
 
-See [CLI-GUIDE.md](./docs/guides/CLI-GUIDE.md) for complete CLI documentation.
+**Sync with macOS Contacts:**
+```bash
+# Sync FROM MCP Memory TO macOS Contacts
+mcp-memory contacts sync --direction export --user-email user@example.com
+
+# Sync FROM macOS Contacts TO MCP Memory
+mcp-memory contacts sync --direction import --user-email user@example.com
+
+# Bidirectional sync (both ways)
+mcp-memory contacts sync --direction both --user-email user@example.com
+```
+
+See [CLI-GUIDE.md](./docs/guides/CLI-GUIDE.md) and [CONTACTS_SYNC_GUIDE.md](./docs/guides/CONTACTS_SYNC_GUIDE.md) for complete documentation.
 
 ### Web Interface Commands
 
-The project includes a modern Next.js web interface for visual memory management:
+The project includes a modern Next.js web interface for visual memory management. **The web app includes integrated API routes** - no separate API server needed.
 
 **Setup web interface:**
 ```bash
@@ -167,7 +179,27 @@ The project includes a modern Next.js web interface for visual memory management
 ```bash
 cd web
 npm run dev
+# Default port: 3000, or specify: npm run dev -- -p 3001
 ```
+
+**Deploy web app with PM2 (includes API routes):**
+```bash
+# Build the web app
+cd web && npm run build && cd ..
+
+# Start with PM2 on port 3001
+pm2 start ecosystem.config.cjs
+
+# Or manually
+cd web
+pm2 start npm --name "mcp-memory-web" -- start -- -p 3001
+```
+
+**Important**: The web application serves both:
+- Frontend UI at `http://localhost:3001`
+- API endpoints at `http://localhost:3001/api/*`
+
+Do NOT deploy a separate standalone API server - the web app includes all API functionality.
 
 **Build web interface for production:**
 ```bash

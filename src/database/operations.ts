@@ -139,6 +139,11 @@ export class DatabaseOperations {
       mappedEntity.updated_at || mappedEntity.updatedAt || new Date().toISOString(),
     ]);
 
+    // Validate that database returned a valid ID
+    if (!result.lastInsertRowid) {
+      throw new Error('Failed to create entity: database did not return an ID');
+    }
+
     return { ...entity, id: String(result.lastInsertRowid) }; // ✅ Convert to string
   }
 
@@ -252,6 +257,11 @@ export class DatabaseOperations {
       mappedMemory.created_at || mappedMemory.createdAt || new Date().toISOString(),
       mappedMemory.updated_at || mappedMemory.updatedAt || new Date().toISOString(),
     ]);
+
+    // Validate that database returned a valid ID
+    if (!result.lastInsertRowid) {
+      throw new Error('Failed to create memory: database did not return an ID');
+    }
 
     return { ...memory, id: String(result.lastInsertRowid) }; // ✅ Convert to string
   }
