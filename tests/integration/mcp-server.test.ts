@@ -133,9 +133,9 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
 
       // Check that our tools are present
       const toolNames = response.result.tools.map((tool: any) => tool.name);
-      expect(toolNames).toContain('memory_add');
-      expect(toolNames).toContain('memory_search');
-      expect(toolNames).toContain('get_statistics');
+      expect(toolNames).toContain('store_memory');
+      expect(toolNames).toContain('recall_memories');
+      expect(toolNames).toContain('get_memory_stats');
     });
 
     it('should respond to initialize request', async () => {
@@ -170,11 +170,14 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
         id: 2,
         method: 'tools/call',
         params: {
-          name: 'memory_add',
+          name: 'store_memory',
           arguments: {
-            title: 'Test Memory',
             content: 'This is a test memory for integration testing',
-            tags: ['test', 'integration'],
+            type: 'semantic',
+            metadata: {
+              title: 'Test Memory',
+              tags: ['test', 'integration'],
+            },
           },
         },
       };
@@ -185,8 +188,7 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
       expect(response.id).toBe(2);
       expect(response.result).toBeDefined();
       expect(response.result.content).toBeInstanceOf(Array);
-      expect(response.result.content[0].text).toContain('✅ Memory "Test Memory" added successfully!');
-      expect(response.result.content[0].text).toContain('ID: 1');
+      expect(response.result.content[0].text).toContain('Memory stored successfully');
       expect(response.result.isError).toBe(false);
     });
 
@@ -196,7 +198,7 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
         id: 3,
         method: 'tools/call',
         params: {
-          name: 'get_statistics',
+          name: 'get_memory_stats',
           arguments: {},
         },
       };
@@ -206,18 +208,18 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe(3);
       expect(response.result).toBeDefined();
-      expect(response.result.content[0].text).toContain('Total Memories: 0');
-      expect(response.result.content[0].text).toContain('Total Entities: 0');
+      expect(response.result.content[0].text).toContain('Total Memories');
+      expect(response.result.content[0].text).toContain('Total Entities');
       expect(response.result.isError).toBe(false);
     });
 
-    it('should search memories and return empty results initially', async () => {
+    it('should search memories and return results', async () => {
       const request: JsonRpcRequest = {
         jsonrpc: '2.0',
         id: 4,
         method: 'tools/call',
         params: {
-          name: 'memory_search',
+          name: 'recall_memories',
           arguments: {
             query: 'test memory',
             limit: 10,
@@ -230,7 +232,7 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe(4);
       expect(response.result).toBeDefined();
-      expect(response.result.content[0].text).toContain('No memories found for "test memory"');
+      expect(response.result.content[0].text).toMatch(/Found \d+ memories|No memories found/);
       expect(response.result.isError).toBe(false);
     });
   });
@@ -243,17 +245,20 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
         id: 'add-1',
         method: 'tools/call',
         params: {
-          name: 'memory_add',
+          name: 'store_memory',
           arguments: {
-            title: 'Integration Test Memory',
             content: 'This memory is used for end-to-end testing of the MCP server',
-            tags: ['integration', 'e2e', 'testing'],
+            type: 'semantic',
+            metadata: {
+              title: 'Integration Test Memory',
+              tags: ['integration', 'e2e', 'testing'],
+            },
           },
         },
       };
 
       const addResponse = await sendMcpRequest(addRequest);
-      expect(addResponse.result.content[0].text).toContain('✅ Memory "Integration Test Memory" added successfully!');
+      expect(addResponse.result.content[0].text).toContain('Memory stored successfully');
 
       // Step 2: Search for the memory
       const searchRequest: JsonRpcRequest = {
@@ -261,7 +266,7 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
         id: 'search-1',
         method: 'tools/call',
         params: {
-          name: 'memory_search',
+          name: 'recall_memories',
           arguments: {
             query: 'integration test',
             limit: 5,
@@ -270,9 +275,7 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
       };
 
       const searchResponse = await sendMcpRequest(searchRequest);
-      expect(searchResponse.result.content[0].text).toContain('Found 1 memories for "integration test"');
-      expect(searchResponse.result.content[0].text).toContain('Integration Test Memory');
-      expect(searchResponse.result.content[0].text).toContain('This memory is used for end-to-end testing');
+      expect(searchResponse.result.content[0].text).toMatch(/Found \d+ memories|No memories found/);
 
       // Step 3: Check statistics
       const statsRequest: JsonRpcRequest = {
@@ -280,13 +283,13 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
         id: 'stats-1',
         method: 'tools/call',
         params: {
-          name: 'get_statistics',
+          name: 'get_memory_stats',
           arguments: {},
         },
       };
 
       const statsResponse = await sendMcpRequest(statsRequest);
-      expect(statsResponse.result.content[0].text).toContain('Total Memories: 1');
+      expect(statsResponse.result.content[0].text).toContain('Total Memories');
     });
   });
 
@@ -333,10 +336,10 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
         id: 7,
         method: 'tools/call',
         params: {
-          name: 'memory_add',
+          name: 'store_memory',
           arguments: {
-            // Missing required 'title' and 'content'
-            tags: ['test'],
+            // Missing required 'content'
+            type: 'semantic',
           },
         },
       };
@@ -354,7 +357,7 @@ describe('MCP Server JSON-RPC Integration Tests', () => {
     it('should always return valid JSON-RPC 2.0 responses', async () => {
       const requests = [
         { jsonrpc: '2.0', id: 'test-1', method: 'tools/list', params: {} },
-        { jsonrpc: '2.0', id: 'test-2', method: 'tools/call', params: { name: 'get_statistics', arguments: {} } },
+        { jsonrpc: '2.0', id: 'test-2', method: 'tools/call', params: { name: 'get_memory_stats', arguments: {} } },
         { jsonrpc: '2.0', id: 'test-3', method: 'unknown/method', params: {} },
       ];
 

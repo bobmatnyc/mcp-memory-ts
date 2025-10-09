@@ -1,8 +1,8 @@
-import { Navbar } from '@/components/layout/navbar';
 import { StatsCard } from '@/components/stats/stats-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { RetryButton } from '@/components/status/retry-button';
 import { auth } from '@clerk/nextjs/server';
 import { Database, Brain, Users, Activity, TrendingUp, Clock, AlertCircle, Settings } from 'lucide-react';
 import { redirect } from 'next/navigation';
@@ -56,17 +56,17 @@ const IMPORTANCE_LABELS: Record<number, { label: string; color: string }> = {
 export default async function StatusPage() {
   const { userId } = auth();
 
-  if (!userId) {
-    redirect('/');
-  }
-
-  const [statsResult, memoriesResult] = await Promise.all([getStats(), getRecentMemories()]);
+  // Status page is public for health checks
+  // If not authenticated, only show basic status without user-specific data
+  const [statsResult, memoriesResult] = await Promise.all([
+    getStats(),
+    userId ? getRecentMemories() : Promise.resolve({ success: false, data: [] })
+  ]);
 
   // If there's an error fetching stats, show error page
   if (!statsResult.success) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
             <Card className="border-red-200 bg-red-50">
@@ -92,9 +92,7 @@ export default async function StatusPage() {
                           Configure Settings
                         </Button>
                       </Link>
-                      <Button variant="outline" onClick={() => window.location.reload()}>
-                        Retry
-                      </Button>
+                      <RetryButton />
                     </div>
                   </div>
                 </div>
@@ -142,7 +140,6 @@ export default async function StatusPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900">Status Dashboard</h1>

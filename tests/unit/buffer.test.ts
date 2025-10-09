@@ -223,21 +223,27 @@ describe('MemoryBuffer', () => {
       // Add items to buffer
       const memoryId1 = await buffer.add(memoryData);
       const memoryId2 = await buffer.add({ ...memoryData, title: 'Test Memory 2' });
-      
+
       // Persist the buffer
       await buffer.persist();
-      
+
+      // Close the original buffer to ensure persistence is complete
+      await buffer.close();
+
       // Create new buffer and restore
       const newBuffer = new MemoryBuffer(persistPath, 100);
       const restoredCount = await newBuffer.restore();
-      
+
       expect(restoredCount).toBe(2);
-      
+
       const status = await newBuffer.getStatus();
       expect(status.pendingCount).toBe(2);
       expect(status.totalInCache).toBe(2);
-      
+
       await newBuffer.close();
+
+      // Set buffer to newBuffer so afterEach doesn't try to close it again
+      buffer = newBuffer;
     });
 
     it('should handle missing persistence file gracefully', async () => {

@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-10-08
+
+### Added
+- **Async Embedding Optimization**: New `generateEmbedding: 'async'` mode for memory creation with 90-95% latency reduction
+- **Performance Enhancement**: Memory creation now responds in ~50ms (down from 500-2000ms) using async embedding generation
+- **Web Interface Redesign**: Complete homepage redesign with feature showcase and project information
+- **Dashboard Page**: New centralized dashboard (`/dashboard`) with connection health, stats summary, and navigation cards
+- **Utilities Page**: New utilities interface (`/utilities`) with Memory Browser and Memory Extractor tabs
+- **Enhanced Navigation**: Consistent navbar across all web pages with authentication-aware display
+- **API Health Endpoint**: New `/api/health/openai` endpoint for monitoring OpenAI API connectivity
+- **Comprehensive Documentation**:
+  - ASYNC_EMBEDDING_OPTIMIZATION.md - Complete async embedding guide
+  - ASYNC_EMBEDDING_IMPLEMENTATION_SUMMARY.md - Implementation details
+  - QUICK_REFERENCE_ASYNC_EMBEDDING.md - Developer quick reference
+- **Example Code**: `examples/async-embedding-demo.ts` demonstrating async embedding performance
+
+### Changed
+- **Memory Creation API**: Enhanced `generateEmbedding` option to support `'sync'`, `'async'`, and `false` modes (backward compatible)
+- **MCP Server Default**: Changed default embedding mode from synchronous to async for improved user experience
+- **Web Layout**: Navbar now included in root layout for consistency across all pages
+- **Home Page**: Transformed from simple sign-in to marketing-style landing with feature cards
+- **Navigation Structure**: Updated routing - home (/) is public, dashboard/utilities/settings require authentication
+- **Importance Validation**: Enhanced to accept both enum values (1-4) and decimal values (0-1)
+- **Test Infrastructure**: Improved test suite with better tool name handling and user isolation
+
+### Fixed
+- **Buffer Persistence**: Fixed race condition in buffer restoration during test setup/teardown
+- **Error Handling**: Improved graceful degradation in search operations (return empty results vs throwing errors)
+- **Test Compatibility**: Fixed 7 test failures related to embeddings, buffer, memory core, and MCP server
+- **Vector Search**: Fixed UNIQUE constraint violation in test user creation
+- **Vitest Configuration**: Excluded Playwright tests from Vitest to prevent spurious test execution
+
+### Performance
+- **Memory Creation**: 10-40x faster response time with async embedding (50ms vs 500-2000ms)
+- **Background Processing**: Embeddings now generate in background without blocking user operations
+- **Immediate Availability**: Memories accessible via text search immediately, semantic search available once embedding completes
+
+### Documentation
+- Reorganized documentation structure with reports in `docs/reports/` and tools in `docs/tools/`
+- Added visual assets for web interface (desktop, mobile, tablet screenshots)
+- Enhanced testing documentation with deployment test reports
+
 ## [1.5.1] - 2025-10-07
 
 ### Fixed

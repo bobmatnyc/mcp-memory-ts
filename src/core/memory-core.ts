@@ -144,7 +144,7 @@ export class MemoryCore {
       tags?: string[];
       entityIds?: number[];
       metadata?: Record<string, unknown>;
-      generateEmbedding?: boolean;
+      generateEmbedding?: boolean | 'sync' | 'async';
     } = {}
   ): Promise<MCPToolResult> {
     try {
@@ -154,18 +154,27 @@ export class MemoryCore {
       if (options.importance !== undefined) {
         const importance =
           typeof options.importance === 'number' ? options.importance : options.importance;
-        if (importance < 0.0 || importance > 1.0) {
+        // Accept both enum values (1-4) and decimal values (0-1)
+        const isEnumValue = importance >= 1 && importance <= 4 && Number.isInteger(importance);
+        const isDecimalValue = importance >= 0.0 && importance <= 1.0;
+        if (!isEnumValue && !isDecimalValue) {
           return {
             status: MCPToolResultStatus.ERROR,
             message: 'Failed to add memory',
-            error: 'Importance must be between 0.0 and 1.0',
+            error: 'Importance must be between 0.0 and 1.0 (decimal) or 1-4 (enum)',
           };
         }
       }
 
-      // Generate embedding if requested (default: true)
+      // Normalize embedding generation option
+      const embeddingMode = this.normalizeEmbeddingOption(options.generateEmbedding);
+
+      // Generate embedding based on mode
       let embedding: number[] | undefined;
-      if (options.generateEmbedding !== false) {
+      let embeddingQueued = false;
+
+      if (embeddingMode === 'sync') {
+        // Synchronous: Generate embedding before creating memory (backward compatible)
         try {
           const embeddingText = EmbeddingService.createMemoryEmbeddingText({
             title,
@@ -179,7 +188,7 @@ export class MemoryCore {
           if (generatedEmbedding && generatedEmbedding.length > 0) {
             embedding = generatedEmbedding;
             console.error(
-              `[MemoryCore] ✅ Generated embedding with ${embedding.length} dimensions for memory "${title}"`
+              `[MemoryCore] ✅ Generated embedding with ${embedding.length} dimensions for memory "${title}" (sync)`
             );
           } else {
             console.warn(
@@ -193,7 +202,15 @@ export class MemoryCore {
           );
           // Continue without embedding - it will be queued for retry by embedding updater
         }
+      } else if (embeddingMode === 'async') {
+        // Asynchronous: Skip embedding generation, queue for background processing
+        console.error(
+          `[MemoryCore] 🚀 Async mode: Creating memory "${title}" without embedding (will be queued)`
+        );
+        embedding = undefined;
+        embeddingQueued = true;
       } else {
+        // Disabled: Skip embedding generation entirely
         console.error(
           `[MemoryCore] ⏭️  Skipping embedding generation for memory "${title}" (disabled by options)`
         );
@@ -218,16 +235,23 @@ export class MemoryCore {
         throw new Error(`Memory created but ID is invalid: ${savedMemory.id}`);
       }
 
-      // Queue for embedding update if auto-update is enabled and no valid embedding was generated
-      if (this.embeddingUpdater && (!embedding || embedding.length === 0)) {
-        console.error(
-          `[MemoryCore] 🔄 Queuing memory ${savedMemory.id} for embedding update (${!embedding ? 'no embedding' : 'empty embedding'})`
-        );
-        this.embeddingUpdater.queueMemoryUpdate(savedMemory.id as string);
-      } else if (!embedding || embedding.length === 0) {
-        console.warn(
-          `[MemoryCore] ⚠️  Memory ${savedMemory.id} saved without embedding and no updater available`
-        );
+      // Queue for embedding update if needed
+      if (embeddingQueued || (!embedding || embedding.length === 0)) {
+        if (this.embeddingUpdater) {
+          const reason = embeddingQueued
+            ? 'async mode'
+            : !embedding
+              ? 'no embedding'
+              : 'empty embedding';
+          console.error(
+            `[MemoryCore] 🔄 Queuing memory ${savedMemory.id} for embedding update (${reason})`
+          );
+          this.embeddingUpdater.queueMemoryUpdate(savedMemory.id as string);
+        } else if (embeddingMode !== 'disabled') {
+          console.warn(
+            `[MemoryCore] ⚠️  Memory ${savedMemory.id} saved without embedding and no updater available`
+          );
+        }
       }
 
       return {
@@ -237,6 +261,7 @@ export class MemoryCore {
           id: savedMemory.id,
           title: savedMemory.title,
           hasEmbedding: !!(embedding && embedding.length > 0),
+          embeddingQueued: embeddingQueued || (!embedding && !!this.embeddingUpdater),
         },
       };
     } catch (error) {
@@ -246,6 +271,24 @@ export class MemoryCore {
         error: String(error),
       };
     }
+  }
+
+  /**
+   * Normalize embedding generation option to internal mode
+   * @param option - The embedding option from API
+   * @returns Normalized mode: 'sync', 'async', or 'disabled'
+   */
+  private normalizeEmbeddingOption(
+    option?: boolean | 'sync' | 'async'
+  ): 'sync' | 'async' | 'disabled' {
+    if (option === false) {
+      return 'disabled';
+    }
+    if (option === 'async') {
+      return 'async';
+    }
+    // Default to 'sync' for backward compatibility (true, 'sync', or undefined)
+    return 'sync';
   }
 
   async searchMemories(

@@ -285,6 +285,7 @@ export class MemoryBuffer {
       status: item.status,
       attempts: item.attempts,
       queuedAt: item.timestamp,
+      error: item.lastError,
       lastError: item.lastError,
       completedAt: item.completedAt,
     };

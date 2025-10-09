@@ -133,6 +133,24 @@ export interface DatabaseConfig {
   syncUrl?: string;
 }
 
+// Memory creation options
+export interface AddMemoryOptions {
+  userId?: string;
+  importance?: ImportanceLevel | number;
+  tags?: string[];
+  entityIds?: number[];
+  metadata?: Record<string, unknown>;
+  /**
+   * Embedding generation mode:
+   * - `true` or `'sync'`: Generate embedding synchronously (blocks until complete, ~500-2000ms)
+   * - `'async'`: Create memory immediately, queue embedding generation in background (~50ms response)
+   * - `false`: Skip embedding generation entirely
+   *
+   * @default 'sync' (backward compatible)
+   */
+  generateEmbedding?: boolean | 'sync' | 'async';
+}
+
 // API response wrapper
 export interface ApiResponse<T = unknown> {
   success: boolean;

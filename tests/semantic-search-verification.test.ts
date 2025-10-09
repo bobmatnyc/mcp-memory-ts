@@ -84,7 +84,7 @@ describe('Semantic Search Verification', () => {
         userId: testUserId,
         importance: 0.8,
         tags: ['ml', 'ai', 'neural-networks'],
-        generateEmbedding: true,
+        generateEmbedding: 'sync', // Use synchronous embedding to ensure completion
       }
     );
 
@@ -99,15 +99,15 @@ describe('Semantic Search Verification', () => {
         userId: testUserId,
         importance: 0.7,
         tags: ['coffee', 'brewing', 'recipe'],
-        generateEmbedding: true,
+        generateEmbedding: 'sync', // Use synchronous embedding to ensure completion
       }
     );
 
     expect(coffeeMemoryResult.status).toBe(MCPToolResultStatus.SUCCESS);
     console.log('✓ Created coffee memory:', coffeeMemoryResult.data?.id);
 
-    // Wait a moment to ensure embeddings are stored
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait a moment to ensure embeddings are persisted to database
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Step 2: Verify embeddings were generated
     console.log('\nStep 2: Verifying embeddings were generated...');
@@ -228,7 +228,7 @@ describe('Semantic Search Verification', () => {
       {
         userId: testUserId,
         importance: 0.5,
-        generateEmbedding: true,
+        generateEmbedding: 'sync', // Use synchronous embedding
       }
     );
 
@@ -239,7 +239,7 @@ describe('Semantic Search Verification', () => {
       {
         userId: testUserId,
         importance: 0.5,
-        generateEmbedding: true,
+        generateEmbedding: 'sync', // Use synchronous embedding
       }
     );
 
@@ -250,11 +250,11 @@ describe('Semantic Search Verification', () => {
       {
         userId: testUserId,
         importance: 0.5,
-        generateEmbedding: true,
+        generateEmbedding: 'sync', // Use synchronous embedding
       }
     );
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     console.log('Searching for "machine learning algorithms"...');
 

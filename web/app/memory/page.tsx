@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Navbar } from '@/components/layout/navbar';
 import { MemoryList } from '@/components/memories/memory-list';
 import { MemorySearch } from '@/components/memories/memory-search';
 import { CreateMemoryDialog } from '@/components/memories/create-memory-dialog';
@@ -103,7 +102,6 @@ export default function MemoryPage() {
   if (error && !loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900">Memory</h1>
@@ -158,7 +156,6 @@ export default function MemoryPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>

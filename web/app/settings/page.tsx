@@ -123,17 +123,20 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="max-w-2xl mx-auto">
-          <p className="text-center text-muted-foreground">Loading settings...</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <p className="text-center text-muted-foreground">Loading settings...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Settings</h1>
           <p className="text-muted-foreground mt-2">
@@ -333,6 +336,7 @@ export default function SettingsPage() {
             </p>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

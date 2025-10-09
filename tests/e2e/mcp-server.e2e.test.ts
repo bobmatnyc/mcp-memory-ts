@@ -292,8 +292,8 @@ describe('MCP Server E2E Tests', () => {
       expect(response.result.content[0].text).toContain('Memory stored successfully');
       expect(response.result.isError).toBe(false);
 
-      // Extract memory ID from response text
-      const match = response.result.content[0].text.match(/ID: ([a-f0-9-]+)/);
+      // Extract memory ID from response text (can be UUID or numeric)
+      const match = response.result.content[0].text.match(/ID: ([a-f0-9-]+|\d+)/);
       expect(match).toBeDefined();
       testMemoryId = match![1];
     }, TEST_TIMEOUT);
@@ -318,7 +318,7 @@ describe('MCP Server E2E Tests', () => {
         type: 'semantic',
       });
 
-      const match = storeResponse.result.content[0].text.match(/ID: ([a-f0-9-]+)/);
+      const match = storeResponse.result.content[0].text.match(/ID: ([a-f0-9-]+|\d+)/);
       const memoryId = match![1];
 
       // Now retrieve it
@@ -340,7 +340,7 @@ describe('MCP Server E2E Tests', () => {
         type: 'semantic',
       });
 
-      const match = storeResponse.result.content[0].text.match(/ID: ([a-f0-9-]+)/);
+      const match = storeResponse.result.content[0].text.match(/ID: ([a-f0-9-]+|\d+)/);
       const memoryId = match![1];
 
       // Update it
@@ -371,7 +371,7 @@ describe('MCP Server E2E Tests', () => {
         type: 'semantic',
       });
 
-      const match = storeResponse.result.content[0].text.match(/ID: ([a-f0-9-]+)/);
+      const match = storeResponse.result.content[0].text.match(/ID: ([a-f0-9-]+|\d+)/);
       const memoryId = match![1];
 
       // Delete it
@@ -468,7 +468,7 @@ describe('MCP Server E2E Tests', () => {
       });
 
       expect(storeResponse.result.isError).toBe(false);
-      const match = storeResponse.result.content[0].text.match(/ID: ([a-f0-9-]+)/);
+      const match = storeResponse.result.content[0].text.match(/ID: ([a-f0-9-]+|\d+)/);
       const memoryId = match![1];
 
       // 2. Recall memory
@@ -534,7 +534,7 @@ describe('MCP Server E2E Tests', () => {
           type: 'semantic',
         });
 
-        const match = response.result.content[0].text.match(/ID: ([a-f0-9-]+)/);
+        const match = response.result.content[0].text.match(/ID: ([a-f0-9-]+|\d+)/);
         memoryIds.push(match![1]);
       }
 

@@ -419,13 +419,17 @@ class SimpleMCPServer {
               tags: Array.isArray(tags) ? tags : [tags],
               importance: importanceValue as any, // Pass decimal importance directly
               metadata: metadataToStore,
-              generateEmbedding: true, // Always generate embeddings for new memories
+              generateEmbedding: 'async', // Use async embedding for faster response (~50ms vs ~500-2000ms)
             }
           );
 
           if (addResult.status === MCPToolResultStatus.SUCCESS) {
             const memoryData = addResult.data as any;
-            const embeddingStatus = memoryData?.hasEmbedding ? ' ✅ with embedding' : ' ⚠️  without embedding (will be generated)';
+            const embeddingStatus = memoryData?.hasEmbedding
+              ? ' ✅ with embedding'
+              : memoryData?.embeddingQueued
+                ? ' 🔄 embedding queued (generating in background)'
+                : ' ⚠️  without embedding (will be generated)';
             resultText = `✅ Memory stored successfully!${embeddingStatus}\n\nID: ${memoryData?.id || 'unknown'}\nContent: ${args.content}\nType: ${inputType}\nImportance: ${importanceValue}`;
           } else {
             resultText = `❌ Failed to store memory: ${addResult.error || addResult.message}`;
@@ -462,7 +466,8 @@ class SimpleMCPServer {
           break;
 
         case 'get_memory':
-          const getResult = await this.memoryCore.getMemory(args.id);
+          const userId = this.getUserId();
+          const getResult = await this.memoryCore.getMemory(args.id, { userId });
 
           if (getResult.status === MCPToolResultStatus.SUCCESS && getResult.data) {
             const memory = getResult.data as any;
@@ -481,6 +486,7 @@ class SimpleMCPServer {
 
         case 'update_memory':
           // Build updates object with only provided fields
+          const updateUserId = this.getUserId();
           const updates: any = {};
           if (args.content !== undefined) updates.content = args.content;
           if (args.title !== undefined) updates.title = args.title;
@@ -488,7 +494,7 @@ class SimpleMCPServer {
           if (args.tags !== undefined) updates.tags = args.tags;
           if (args.metadata !== undefined) updates.metadata = args.metadata;
 
-          const memoryUpdateResult = await this.memoryCore.updateMemory(args.id, updates);
+          const memoryUpdateResult = await this.memoryCore.updateMemory(args.id, updates, { userId: updateUserId });
 
           if (memoryUpdateResult.status === MCPToolResultStatus.SUCCESS) {
             resultText = `✅ Memory ${args.id} updated successfully!`;
@@ -498,7 +504,8 @@ class SimpleMCPServer {
           break;
 
         case 'delete_memory':
-          const deleteResult = await this.memoryCore.deleteMemory(args.id);
+          const deleteUserId = this.getUserId();
+          const deleteResult = await this.memoryCore.deleteMemory(args.id, { userId: deleteUserId });
 
           if (deleteResult.status === MCPToolResultStatus.SUCCESS) {
             resultText = `✅ Memory ${args.id} deleted successfully!`;

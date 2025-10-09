@@ -97,9 +97,17 @@ temp/
 /CHANGELOG-*.md
 /config-*.md
 
-# Temporary test files (should go in tools/ or tests/)
+# Temporary test files (root level only - organized tests are in tests/)
 /test-*.ts
 /test-*.js
+
+# Temporary files and test results
+tmp/
+test-results/
+playwright-report/
+
+# Backup files in project root
+backup_*.tar.gz
 
 # Added by Claude MPM /mpm-init
 $RECYCLE.BIN/

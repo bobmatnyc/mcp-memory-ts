@@ -45,9 +45,9 @@ describe('EmbeddingService', () => {
         data: [],
       });
 
-      const result = await embeddingService.generateEmbedding('test text');
-
-      expect(result).toEqual([]);
+      await expect(embeddingService.generateEmbedding('test text')).rejects.toThrow(
+        'OpenAI API returned invalid or empty embedding'
+      );
     });
 
     it('should throw error on API failure', async () => {

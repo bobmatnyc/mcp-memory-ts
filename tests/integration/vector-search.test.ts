@@ -28,9 +28,10 @@ describeIfKey('Vector Similarity Search', () => {
     memoryCore = new MemoryCore(db, OPENAI_API_KEY, { autoUpdateEmbeddings: false });
     await memoryCore.initialize();
 
-    // Create test user
+    // Create test user with unique email to avoid UNIQUE constraint violations
+    const uniqueEmail = `test-vector-${Date.now()}@example.com`;
     const userResult = await memoryCore.createUser({
-      email: 'test@example.com',
+      email: uniqueEmail,
       name: 'Test User',
     });
 
