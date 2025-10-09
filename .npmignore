@@ -1,0 +1,104 @@
+# Web interface (deploy separately to Vercel/hosting)
+web/
+
+# Documentation archives and backups
+docs/_archive/
+*.backup
+*.backup-*
+backup_*.tar.gz
+
+# Development scripts
+scripts/
+
+# Tests
+tests/
+__tests__/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+test/
+coverage/
+test-*.ts
+test-*.js
+
+# Development configuration
+.github/
+.vscode/
+.idea/
+*.log
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Build artifacts (keep dist/ for the package)
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+circle.yml
+appveyor.yml
+
+# Documentation (keep README, LICENSE, CLAUDE.md, DEPLOYMENT.md)
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+docs/
+
+# Development tools
+tools/
+examples/
+
+# Claude agent configuration (not needed in npm package)
+.claude/
+.claude-mpm/
+.mcp.json
+
+# Vector search data (not needed in npm package)
+.mcp-vector-search/
+
+# Local databases and data (not needed in npm package)
+kuzu-memories/
+*.db
+*.sqlite
+*.sqlite3
+
+# Vercel deployment config
+.vercel/
+vercel.json
+
+# API routes (use from source if needed)
+api/
+
+# Public static files (not needed for npm package)
+public/
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Additional TypeScript configs
+tsconfig.*.json
+
+# Large image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
