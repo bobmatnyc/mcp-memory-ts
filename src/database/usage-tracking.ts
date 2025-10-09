@@ -39,6 +39,7 @@ export class UsageTrackingDB {
   constructor(private db: DatabaseConnection) {}
 
   async recordUsage(record: Omit<UsageRecord, 'id'>): Promise<string> {
+    // eslint-disable-next-line no-undef
     const id = crypto.randomUUID();
 
     await this.db.execute(

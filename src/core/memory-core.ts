@@ -2,7 +2,6 @@
  * Core memory service with vector search capabilities
  */
 
-import { v4 as uuidv4 } from 'uuid';
 import { DatabaseConnection, DatabaseOperations, initializeSchema } from '../database/index.js';
 import { SchemaCompatibility } from '../database/compatibility.js';
 import { EmbeddingService } from '../utils/embeddings.js';
@@ -11,19 +10,12 @@ import type {
   User,
   Entity,
   Memory,
-  Interaction,
   SearchResult,
   VectorSearchOptions,
   SearchStrategy,
   MCPToolResult,
 } from '../types/base.js';
-import {
-  createUser,
-  createEntity,
-  createMemory,
-  createInteraction,
-  hashApiKey,
-} from '../models/index.js';
+import { createUser, createEntity, createMemory, hashApiKey } from '../models/index.js';
 import { MCPToolResultStatus, MemoryType, EntityType, ImportanceLevel } from '../types/enums.js';
 
 export class MemoryCore {
@@ -236,7 +228,7 @@ export class MemoryCore {
       }
 
       // Queue for embedding update if needed
-      if (embeddingQueued || (!embedding || embedding.length === 0)) {
+      if (embeddingQueued || !embedding || embedding.length === 0) {
         if (this.embeddingUpdater) {
           const reason = embeddingQueued
             ? 'async mode'

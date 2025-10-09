@@ -79,6 +79,7 @@ export class EmbeddingUpdater {
 
         // Rate limiting
         if (this.queue.size > 0) {
+          // eslint-disable-next-line no-undef
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
@@ -150,6 +151,7 @@ export class EmbeddingUpdater {
         }
 
         // Wait before retry
+        // eslint-disable-next-line no-undef
         await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempts));
       }
     }
@@ -215,6 +217,7 @@ export class EmbeddingUpdater {
 
       // Rate limiting between batches
       if (i + this.batchSize < memoryIds.length) {
+        // eslint-disable-next-line no-undef
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
@@ -232,6 +235,7 @@ export class EmbeddingUpdater {
     await this.updateAllMissingEmbeddings();
 
     // Set up periodic updates
+    // eslint-disable-next-line no-undef
     setInterval(async () => {
       try {
         const stats = await this.updateAllMissingEmbeddings();

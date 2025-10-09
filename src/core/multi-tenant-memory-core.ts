@@ -7,8 +7,8 @@ import { MemoryCore } from './memory-core.js';
 import { MemoryBuffer } from './buffer.js';
 import { AsyncMemoryWriter } from './writer.js';
 import { DatabaseConnection } from '../database/index.js';
-import { MemoryType, EntityType, ImportanceLevel, MCPToolResultStatus } from '../types/enums.js';
-import type { MCPToolResult, VectorSearchOptions } from '../types/base.js';
+import { MemoryType, ImportanceLevel, MCPToolResultStatus } from '../types/enums.js';
+import type { MCPToolResult } from '../types/base.js';
 
 export interface UserBuffer {
   userId: string;

@@ -201,6 +201,7 @@ async function countContactsWithRetry(maxRetries: number = 3): Promise<number> {
       }
 
       console.log(colors.dim(`  Retry ${attempt}/${maxRetries}...`));
+      // eslint-disable-next-line no-undef
       await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
     }
   }

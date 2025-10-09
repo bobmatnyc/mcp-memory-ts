@@ -68,7 +68,7 @@ class APIServer {
         }
 
         request.user = { id: user.id, email: user.email };
-      } catch (error) {
+      } catch {
         reply.code(500).send({ success: false, error: 'Authentication error' });
         return;
       }
@@ -77,12 +77,12 @@ class APIServer {
 
   private setupRoutes(): void {
     // Health check
-    this.fastify.get('/health', async (request, reply) => {
+    this.fastify.get('/health', async () => {
       return { status: 'ok', timestamp: new Date().toISOString() };
     });
 
     // Root endpoint
-    this.fastify.get('/', async (request, reply) => {
+    this.fastify.get('/', async () => {
       return {
         name: 'MCP Memory Service API',
         version: '1.0.0',
@@ -248,7 +248,7 @@ class APIServer {
   // Route handlers
   private async addMemory(
     request: AuthenticatedRequest,
-    reply: FastifyReply
+    _reply: FastifyReply
   ): Promise<ApiResponse> {
     const { title, content, memory_type, importance, tags, entity_ids } = request.body as any;
 
@@ -274,7 +274,7 @@ class APIServer {
 
   private async searchMemories(
     request: AuthenticatedRequest,
-    reply: FastifyReply
+    _reply: FastifyReply
   ): Promise<ApiResponse> {
     const { query, limit, threshold, memory_types } = request.query as any;
 
@@ -299,8 +299,8 @@ class APIServer {
   }
 
   private async getMemories(
-    request: AuthenticatedRequest,
-    reply: FastifyReply
+    _request: AuthenticatedRequest,
+    _reply: FastifyReply
   ): Promise<ApiResponse> {
     // TODO: Implement get memories in MemoryCore
     return {
@@ -311,7 +311,7 @@ class APIServer {
 
   private async createEntity(
     request: AuthenticatedRequest,
-    reply: FastifyReply
+    _reply: FastifyReply
   ): Promise<ApiResponse> {
     const { name, entity_type, ...options } = request.body as any;
 
@@ -331,7 +331,7 @@ class APIServer {
 
   private async searchEntities(
     request: AuthenticatedRequest,
-    reply: FastifyReply
+    _reply: FastifyReply
   ): Promise<ApiResponse> {
     const { query, limit } = request.query as any;
 
@@ -349,8 +349,8 @@ class APIServer {
   }
 
   private async getEntities(
-    request: AuthenticatedRequest,
-    reply: FastifyReply
+    _request: AuthenticatedRequest,
+    _reply: FastifyReply
   ): Promise<ApiResponse> {
     // TODO: Implement get entities in MemoryCore
     return {
@@ -361,7 +361,7 @@ class APIServer {
 
   private async unifiedSearch(
     request: AuthenticatedRequest,
-    reply: FastifyReply
+    _reply: FastifyReply
   ): Promise<ApiResponse> {
     const { query, limit, threshold, memory_types, entity_types } = request.query as any;
 
@@ -392,7 +392,7 @@ class APIServer {
 
   private async getStatistics(
     request: AuthenticatedRequest,
-    reply: FastifyReply
+    _reply: FastifyReply
   ): Promise<ApiResponse> {
     const result = await this.memoryCore!.getStatistics(request.user!.id);
 
@@ -404,7 +404,7 @@ class APIServer {
     };
   }
 
-  private async createUser(request: FastifyRequest, reply: FastifyReply): Promise<ApiResponse> {
+  private async createUser(request: FastifyRequest, _reply: FastifyReply): Promise<ApiResponse> {
     const userData = request.body as any;
 
     const result = await this.memoryCore!.createUser(userData);

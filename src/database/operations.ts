@@ -3,7 +3,7 @@
  */
 
 import type { DatabaseConnection } from './connection.js';
-import type { User, Entity, Memory, Interaction } from '../types/base.js';
+import type { User, Entity, Memory } from '../types/base.js';
 import { sanitizeTags, parseMetadata, stringifyMetadata } from '../models/index.js';
 import { SchemaCompatibility, ApiKeySecurity } from './compatibility.js';
 

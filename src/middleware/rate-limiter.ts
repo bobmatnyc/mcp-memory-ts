@@ -34,6 +34,7 @@ export class RateLimiter {
     };
 
     // Cleanup old buckets every 5 minutes
+    // eslint-disable-next-line no-undef
     setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
 

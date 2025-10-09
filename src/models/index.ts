@@ -111,8 +111,10 @@ export function createInteraction(data: Partial<Interaction>): Omit<Interaction,
  * Generate a hash for API keys
  */
 export async function hashApiKey(apiKey: string): Promise<string> {
+  // eslint-disable-next-line no-undef
   const encoder = new TextEncoder();
   const data = encoder.encode(apiKey);
+  // eslint-disable-next-line no-undef
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');

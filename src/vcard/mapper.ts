@@ -3,7 +3,7 @@
  */
 
 import type { Entity } from '../types/base.js';
-import { EntityType, PersonType, ImportanceLevel } from '../types/enums.js';
+import { EntityType, ImportanceLevel } from '../types/enums.js';
 import { VCardVersion, type VCardData } from './types.js';
 
 /**
@@ -162,6 +162,7 @@ function isValidEmail(email: string): boolean {
  */
 function isValidUrl(url: string): boolean {
   try {
+    // eslint-disable-next-line no-undef
     new URL(url);
     return true;
   } catch {

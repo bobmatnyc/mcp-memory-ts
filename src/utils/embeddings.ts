@@ -353,6 +353,7 @@ export class EmbeddingService {
 
       // Add delay between batches to respect rate limits
       if (i + batchSize < texts.length) {
+        // eslint-disable-next-line no-undef
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }

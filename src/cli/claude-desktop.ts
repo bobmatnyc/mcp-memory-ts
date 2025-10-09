@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join, resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import { colors, icons, success, error, warning, info, section, keyValue } from './colors.js';
 import type { UserConfig } from '../types/sync-config.js';
 
@@ -142,14 +143,13 @@ function saveClaudeDesktopConfig(config: ClaudeDesktopConfig): boolean {
 function getCliPath(): string {
   // Try global npm installation first
   try {
-    const { execSync } = require('child_process');
     const npmBin = execSync('npm bin -g', { encoding: 'utf-8' }).trim();
     const globalPath = join(npmBin, 'mcp-memory');
 
     if (existsSync(globalPath)) {
       return globalPath;
     }
-  } catch (error) {
+  } catch {
     // Fall back to local development path if npm command fails
   }
 
@@ -163,12 +163,11 @@ function getCliPath(): string {
 
   // Last resort: try to use mcp-memory from PATH
   try {
-    const { execSync } = require('child_process');
     const whichResult = execSync('which mcp-memory', { encoding: 'utf-8' }).trim();
     if (whichResult && existsSync(whichResult)) {
       return whichResult;
     }
-  } catch (error) {
+  } catch {
     // which command failed, continue to error
   }
 

@@ -27,7 +27,7 @@ import {
   getAllCommandNames,
   setGlobalProgram,
 } from './help.js';
-import { colors, error as errorMsg, success as successMsg } from './colors.js';
+import { colors, error as errorMsg } from './colors.js';
 import packageJson from '../../package.json' with { type: 'json' };
 
 // Load environment variables from .env file

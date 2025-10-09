@@ -6,7 +6,7 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { MemoryBuffer, MemoryBufferItem, MemoryBufferStatus } from './buffer.js';
+import { MemoryBuffer, MemoryBufferItem } from './buffer.js';
 import { MemoryCore } from './memory-core.js';
 import { MemoryType, ImportanceLevel, MCPToolResultStatus } from '../types/enums.js';
 
@@ -111,7 +111,7 @@ export class AsyncMemoryWriter {
     const dir = this.failureLogPath.substring(0, this.failureLogPath.lastIndexOf('/'));
     try {
       await fs.mkdir(dir, { recursive: true });
-    } catch (error) {
+    } catch {
       // Directory might already exist
     }
   }
@@ -312,7 +312,7 @@ export class AsyncMemoryWriter {
    * Get writer statistics
    */
   async getStats(): Promise<WriterStats> {
-    const bufferMetrics = await this.buffer.getMetrics();
+    await this.buffer.getMetrics();
 
     return {
       ...this.stats,
@@ -322,6 +322,7 @@ export class AsyncMemoryWriter {
   }
 
   private sleep(ms: number): Promise<void> {
+    // eslint-disable-next-line no-undef
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

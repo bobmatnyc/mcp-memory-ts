@@ -4,7 +4,7 @@
  */
 
 import { createHash, randomBytes } from 'crypto';
-import type { Memory, Entity, User } from '../types/base.js';
+import type { Memory, Entity } from '../types/base.js';
 
 /**
  * Field mapping configuration

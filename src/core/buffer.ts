@@ -80,7 +80,7 @@ export class MemoryBuffer {
     const dir = this.persistPath.substring(0, this.persistPath.lastIndexOf('/'));
     try {
       await fs.mkdir(dir, { recursive: true });
-    } catch (error) {
+    } catch {
       // Directory might already exist
     }
   }
@@ -177,6 +177,7 @@ export class MemoryBuffer {
       );
 
       // Schedule cleanup
+      // eslint-disable-next-line no-undef
       setTimeout(() => this.cleanupItem(memoryId), 60000);
     }
   }
@@ -206,6 +207,7 @@ export class MemoryBuffer {
       );
 
       // Schedule cleanup
+      // eslint-disable-next-line no-undef
       setTimeout(() => this.cleanupItem(memoryId), 300000);
     }
   }

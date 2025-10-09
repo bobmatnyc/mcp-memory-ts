@@ -2,7 +2,8 @@
  * Base types and interfaces for the MCP Memory Service
  */
 
-import { z } from 'zod';
+// Zod is used for validation but types are manually defined
+// import { z } from 'zod';
 import {
   EntityType,
   PersonType,
