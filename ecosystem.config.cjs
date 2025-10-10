@@ -1,8 +1,8 @@
 module.exports = {
   apps: [{
     name: 'mcp-memory-web',
-    script: 'node_modules/.bin/next',
-    args: 'dev -p 3001',
+    script: 'npm',
+    args: 'run dev -- -p 3001',
     cwd: './web',
     instances: 1,
     autorestart: true,

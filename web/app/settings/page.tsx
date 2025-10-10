@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { GoogleConnectionStatus } from '@/components/dashboard/google-connection-status';
+import { GoogleContactsSync } from '@/components/google/google-contacts-sync';
+import { GoogleCalendarSync } from '@/components/google/google-calendar-sync';
 
 function maskCredential(value: string | undefined): string {
   if (!value || value.length < 15) return '••••••••';
@@ -133,6 +136,10 @@ export default function SettingsPage() {
     );
   }
 
+  const hasCredentials = existingCredentials &&
+    existingCredentials.hasTursoAuthToken &&
+    existingCredentials.hasOpenaiApiKey;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -143,6 +150,29 @@ export default function SettingsPage() {
             Configure your database and API credentials
           </p>
         </div>
+
+        {hasCredentials && (
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-green-900 flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5" />
+                    Auto-Connection Enabled
+                  </CardTitle>
+                  <CardDescription className="text-green-700 mt-1">
+                    Your database connects automatically on every request
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-green-800">
+                No manual connection required. Your saved credentials are used automatically for all operations. The "Verify Connection" button below is optional - it only confirms your credentials are working.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {existingCredentials && (existingCredentials.hasTursoAuthToken || existingCredentials.hasOpenaiApiKey) && (
           <Card className="border-blue-200 bg-blue-50">
@@ -196,10 +226,10 @@ export default function SettingsPage() {
                   {testing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Testing Connection...
+                      Verifying Connection...
                     </>
                   ) : (
-                    'Test Connection'
+                    'Verify Connection (Optional)'
                   )}
                 </Button>
               )}
@@ -336,6 +366,25 @@ export default function SettingsPage() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Google Integration Section */}
+        {hasCredentials && (
+          <>
+            <div className="pt-8">
+              <h2 className="text-2xl font-bold mb-2">Google Integration</h2>
+              <p className="text-muted-foreground">
+                Connect your Google account to sync contacts and calendar events
+              </p>
+            </div>
+
+            <GoogleConnectionStatus />
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <GoogleContactsSync />
+              <GoogleCalendarSync />
+            </div>
+          </>
+        )}
         </div>
       </div>
     </div>

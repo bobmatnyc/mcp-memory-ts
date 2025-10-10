@@ -3,7 +3,7 @@
 **Project Type**: MCP Server / TypeScript Library
 **Purpose**: Cloud-based vector memory service for AI assistants via Model Context Protocol
 **Location**: `/Users/masa/Projects/managed/mcp-memory-ts`
-**Version**: 1.3.0 (published to npm)
+**Version**: 1.6.0 (published to npm)
 **Status**: Production-ready with comprehensive test coverage
 
 ## 🔴 CRITICAL Requirements
@@ -111,6 +111,21 @@ npm run migrate:schema:dry-run
 npm run migrate:schema
 ```
 
+**Version management (changesets):**
+```bash
+# Create a changeset for your changes
+npm run changeset:add
+
+# Update version and generate changelog
+npm run changeset:version
+
+# Check changeset status
+npm run changeset:status
+
+# Release (build, test, and publish)
+npm run release
+```
+
 ### CLI Tool Commands
 
 The project includes a comprehensive CLI tool for managing MCP Memory:
@@ -164,7 +179,22 @@ mcp-memory contacts sync --direction import --user-email user@example.com
 mcp-memory contacts sync --direction both --user-email user@example.com
 ```
 
-See [CLI-GUIDE.md](./docs/guides/CLI-GUIDE.md) and [CONTACTS_SYNC_GUIDE.md](./docs/guides/CONTACTS_SYNC_GUIDE.md) for complete documentation.
+**Google Contacts and Calendar sync:**
+```bash
+# Check Google connection status
+mcp-memory google auth --user-email user@example.com
+
+# Sync Google Contacts (with LLM deduplication)
+mcp-memory google contacts-sync --user-email user@example.com --direction import --auto-merge
+
+# Sync Google Calendar (current week)
+mcp-memory google calendar-sync --user-email user@example.com
+
+# Sync specific week with entity creation
+mcp-memory google calendar-sync --user-email user@example.com --week 2025-41 --create-entities
+```
+
+See [CLI-GUIDE.md](./docs/guides/CLI-GUIDE.md), [CONTACTS_SYNC_GUIDE.md](./docs/guides/CONTACTS_SYNC_GUIDE.md), [GOOGLE_CONTACTS_SYNC_GUIDE.md](./docs/guides/GOOGLE_CONTACTS_SYNC_GUIDE.md), and [GOOGLE_CALENDAR_SYNC_GUIDE.md](./docs/guides/GOOGLE_CALENDAR_SYNC_GUIDE.md) for complete documentation.
 
 ### Web Interface Commands
 
@@ -266,6 +296,11 @@ EMBEDDING_MONITOR_INTERVAL=60000
 # Web Interface (v1.3.0+)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
 CLERK_SECRET_KEY=your-clerk-secret-key
+
+# Google Integration (v1.7.0+)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 ```
 
 ## ⚪ OPTIONAL Enhancements
@@ -285,6 +320,9 @@ CLERK_SECRET_KEY=your-clerk-secret-key
 - Web interface for visual memory management (v1.3.0+)
 - Bidirectional contacts synchronization with LLM deduplication (v1.3.0+)
 - Multi-user authentication with Clerk (v1.3.0+)
+- Google Contacts sync with incremental updates (v1.7.0+)
+- Google Calendar week-based event tracking (v1.7.0+)
+- Cross-platform contact synchronization (v1.7.0+)
 
 ## Development Workflows
 
@@ -325,6 +363,29 @@ npm run migrate:schema:stats
 # 6. If needed, rollback to backup
 npm run migrate:schema:rollback
 ```
+
+### NULL ID Fix Workflow
+If you encounter memories with NULL IDs (LibSQL/Turso quirk), use this script to fix them:
+
+```bash
+# 1. Preview changes without applying (dry run)
+npm run fix-null-ids -- --dry-run
+
+# 2. Review the dry run output showing which records would be updated
+
+# 3. Execute the fix (assigns UUIDs to all NULL IDs)
+npm run fix-null-ids
+
+# 4. Verify all NULL IDs are fixed
+# The script will automatically verify and report statistics
+```
+
+**Features:**
+- Dry-run mode for safe preview
+- Batch processing (50 records at a time)
+- Duplicate prevention (checks existing IDs)
+- Automatic verification
+- Comprehensive statistics reporting
 
 ### MCP Server Development
 1. Use `npm run mcp-server` for local testing
@@ -523,6 +584,13 @@ yarn install
 - Review transaction handling in database operations
 - Check for schema drift after migrations
 
+**Problem**: Memories table has NULL IDs (LibSQL/Turso quirk)
+**Solutions**:
+- Preview the fix: `npm run fix-null-ids -- --dry-run`
+- Execute the fix: `npm run fix-null-ids`
+- Script assigns UUIDs to all NULL ID records in safe batches
+- Automatic verification and statistics reporting included
+
 ### Embedding Failures
 **Problem**: Vector search not working or embeddings missing
 **Solutions**:
@@ -678,6 +746,11 @@ mcp-memory init                 # Initialize configuration
 mcp-memory install              # Install to Claude Desktop
 mcp-memory status               # Check installation
 
+# Google Sync
+mcp-memory google auth -u user@example.com           # Check Google connection
+mcp-memory google contacts-sync -u user@example.com  # Sync Google Contacts
+mcp-memory google calendar-sync -u user@example.com  # Sync Google Calendar
+
 # Web Interface
 cd web && npm run dev           # Start web dev server
 cd web && npm run build         # Build for production
@@ -693,6 +766,8 @@ npm run pre-deploy            # Full pre-deployment test
 npm run migrate:schema:dry-run  # Test migration
 npm run migrate:schema          # Run migration
 npm run verify:schema           # Verify schema
+npm run fix-null-ids -- --dry-run  # Preview NULL ID fix
+npm run fix-null-ids            # Fix NULL IDs in memories table
 ```
 
 ### Quick Start (New Installation)
@@ -738,13 +813,47 @@ mcp-memory update
 
 ## Version History & Changes
 
-### v1.3.0 (Current)
+### v1.7.0 (Planned - October 2025)
+- **Google Contacts Sync**: Bidirectional sync with incremental updates (syncToken)
+- **Google Calendar Sync**: Week-based event tracking with attendee linking
+- **OAuth Integration**: Secure Google authentication with Clerk session management
+- **LLM Deduplication**: GPT-4 powered duplicate detection for Google contacts
+- **Cross-platform Sync**: Combine macOS Contacts and Google Contacts seamlessly
+- **Calendar Entities**: Automatic entity creation from calendar attendees
+- **Comprehensive Docs**: Complete user-facing documentation for Google features
+
+### v1.6.0 (Current - October 2025)
+- **Async Embedding Optimization**: Improved performance for vector operations
+- **Web Interface Enhancements**: Enhanced UI components and user experience
+- **Gmail Extraction** (In Development): Gmail integration capabilities
+- **Package Optimization**: Exclude backup files from npm distribution
+- **Test Coverage Improvements**: Enhanced test suite and deployment validation
+- **Documentation Updates**: Comprehensive docs and deployment guides
+
+### v1.5.0-v1.5.2 (October 2025)
+- **Background Contacts Sync**: Run sync without foreground app activation
+- **AppleScript Improvements**: Fixed shell escaping and quoting issues
+- **Contacts.app Auto-Launch**: Automatic launch with System Events integration
+- **NULL ID Bug Fix**: Database cleanup and ID normalization
+- **Stability Enhancements**: Multiple bug fixes for production reliability
+
+### v1.4.0-v1.4.4 (October 2025)
+- **Database Migration System**: Comprehensive migration tools with rollback support
+- **Contacts Sync Fixes**: Improved reliability and error handling
+- **AppleScript Stability**: Enhanced Contacts.app integration
+- **CLI Path Resolution**: Fixed absolute vs relative path handling
+- **Server Renaming**: `simple-mcp-server` → `desktop-mcp-server` for clarity
+
+### v1.3.0-v1.3.5 (October 2025)
 - Bidirectional Contacts Sync with LLM-powered deduplication
 - Web interface for memory management (Next.js app in `web/`)
 - Clerk authentication integration for multi-user support
 - Enhanced deployment options with comparison guide
 - Contact synchronization performance optimizations
 - Improved documentation organization
+- ESM module fixes and package optimization
+- ID format normalization (strings vs numbers)
+- CLI absolute path generation improvements
 
 ### v1.2.1
 - **CRITICAL SECURITY PATCH**: Fix user isolation vulnerabilities
@@ -790,12 +899,21 @@ mcp-memory update
 ### Guides
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Deployment guide
 - [CLI-GUIDE.md](./docs/guides/CLI-GUIDE.md) - Complete CLI documentation
+- [CHANGESET_GUIDE.md](./docs/guides/CHANGESET_GUIDE.md) - Version management and releases
 - [MIGRATION_QUICK_START.md](./docs/guides/MIGRATION_QUICK_START.md) - Migration guide
 - [CONTACTS_SYNC_QUICK_START.md](./docs/guides/CONTACTS_SYNC_QUICK_START.md) - Contacts sync guide
+- [GOOGLE_SETUP_GUIDE.md](./docs/guides/GOOGLE_SETUP_GUIDE.md) - Google Cloud setup and OAuth
+- [GOOGLE_CONTACTS_SYNC_GUIDE.md](./docs/guides/GOOGLE_CONTACTS_SYNC_GUIDE.md) - Google Contacts sync
+- [GOOGLE_CALENDAR_SYNC_GUIDE.md](./docs/guides/GOOGLE_CALENDAR_SYNC_GUIDE.md) - Google Calendar sync
+- [GOOGLE_MIGRATION_GUIDE.md](./docs/guides/GOOGLE_MIGRATION_GUIDE.md) - Migrate to Google sync
 
 ### Features
 - [WEB_INTERFACE.md](./docs/features/WEB_INTERFACE.md) - Web interface documentation
+- [GOOGLE_SYNC.md](./docs/features/GOOGLE_SYNC.md) - Google integration overview
 - [CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md](./docs/features/CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md) - Sync optimization
+
+### API Reference
+- [GOOGLE_API_REFERENCE.md](./docs/api/GOOGLE_API_REFERENCE.md) - Google sync REST API
 
 ### Security
 - [CLERK_IMPLEMENTATION_NOTES.md](./docs/security/CLERK_IMPLEMENTATION_NOTES.md) - Clerk setup guide
@@ -850,8 +968,36 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 
 ---
 
-**Last Updated**: 2025-10-06
-**Current Version**: 1.3.0
+## Recent Development Activity (Last 30 Days)
+
+### Release Velocity
+- **4 major releases** in October 2025 (v1.3.x → v1.6.0)
+- **64 commits** with active development and bug fixes
+- **High iteration cycle** with rapid stability improvements
+
+### Development Focus Areas
+1. **Contacts Integration**: Background sync, AppleScript improvements, auto-launch
+2. **Database Reliability**: Migration system, NULL ID fixes, schema optimization
+3. **Gmail Integration**: New feature in development (uncommitted work)
+4. **Web Interface**: Enhanced UI components and user experience
+5. **Production Stability**: Multiple bug fixes and deployment enhancements
+
+### Most Active Components
+- Core memory operations (18 changes)
+- Database layer (11 changes)
+- CLI tools and commands (27 changes combined)
+- Web interface components (significant enhancements in progress)
+
+### Current Work in Progress
+- Gmail extraction service (new integration)
+- Web API authentication routes
+- Memory extractor component enhancements
+- Database usage tracking improvements
+
+---
+
+**Last Updated**: 2025-10-09
+**Current Version**: 1.6.0 (v1.7.0 in development)
 **Status**: Production-ready with 95.2% test coverage
 
-*This MCP memory server provides persistent, searchable memory for AI assistants using vector embeddings and semantic search capabilities. It includes a comprehensive CLI tool for easy setup and management.*
+*This MCP memory server provides persistent, searchable memory for AI assistants using vector embeddings and semantic search capabilities. It includes a comprehensive CLI tool for easy setup and management, plus Google Contacts and Calendar sync with LLM-powered deduplication.*

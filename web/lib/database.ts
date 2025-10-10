@@ -356,4 +356,47 @@ export class Database {
   close() {
     this.client.close();
   }
+
+  /**
+   * Get raw client for advanced operations
+   */
+  getClient(): Client {
+    return this.client;
+  }
+}
+
+/**
+ * Create database connection with environment variables
+ */
+export async function createDatabaseConnection(): Promise<Database> {
+  const url = process.env.TURSO_URL;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (!url || !authToken) {
+    throw new Error('Missing TURSO_URL or TURSO_AUTH_TOKEN environment variables');
+  }
+
+  return new Database({ url, authToken });
+}
+
+/**
+ * Get DatabaseOperations instance for Google integration and advanced operations
+ * This uses the parent project's DatabaseOperations class for full compatibility
+ */
+export async function getDatabaseOperations() {
+  const url = process.env.TURSO_URL;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (!url || !authToken) {
+    throw new Error('Missing TURSO_URL or TURSO_AUTH_TOKEN environment variables');
+  }
+
+  // Import from parent project for full compatibility
+  const { DatabaseConnection } = await import('../../src/database/connection.js');
+  const { DatabaseOperations } = await import('../../src/database/operations.js');
+
+  const connection = new DatabaseConnection({ url, authToken });
+  await connection.connect();
+
+  return new DatabaseOperations(connection);
 }

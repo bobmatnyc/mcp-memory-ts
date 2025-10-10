@@ -182,6 +182,101 @@ contactsCommand
     }
   });
 
+// Google command group (Google Contacts and Calendar integration)
+const googleCommand = program
+  .command('google')
+  .description('Sync with Google Contacts and Calendar');
+
+// Google auth subcommand
+googleCommand
+  .command('auth')
+  .description('Check Google OAuth connection status or disconnect')
+  .requiredOption('--user-email <email>', 'User email or ID')
+  .option('--action <action>', 'Action: status or disconnect', 'status')
+  .action(async options => {
+    try {
+      const { googleAuthCommand } = await import('./commands/google-auth.js');
+      const validActions = ['status', 'disconnect'];
+      if (!validActions.includes(options.action)) {
+        console.error(errorMsg(`Invalid action. Must be one of: ${validActions.join(', ')}`));
+        process.exit(1);
+      }
+
+      await googleAuthCommand({
+        userEmail: options.userEmail,
+        action: options.action as 'status' | 'disconnect',
+      });
+    } catch (error) {
+      console.error(errorMsg(`Google auth command failed: ${error}`));
+      process.exit(1);
+    }
+  });
+
+// Google contacts sync subcommand
+googleCommand
+  .command('contacts-sync')
+  .description('Sync contacts with Google Contacts')
+  .requiredOption('--user-email <email>', 'User email or ID')
+  .option('-d, --direction <direction>', 'Sync direction: export, import, or both', 'both')
+  .option('--dry-run', 'Preview without making changes', false)
+  .option('--force-full', 'Force full sync instead of incremental', false)
+  .option('--no-llm', 'Disable LLM-based deduplication')
+  .option('--threshold <number>', 'Deduplication confidence threshold (0-1)', '0.8')
+  .action(async options => {
+    try {
+      const { googleContactsSyncCommand } = await import('./commands/google-contacts-sync.js');
+      const validDirections = ['export', 'import', 'both'];
+      if (!validDirections.includes(options.direction)) {
+        console.error(errorMsg(`Invalid direction. Must be one of: ${validDirections.join(', ')}`));
+        process.exit(1);
+      }
+
+      const threshold = parseFloat(options.threshold);
+      if (isNaN(threshold) || threshold < 0 || threshold > 1) {
+        console.error(errorMsg('Threshold must be between 0 and 1'));
+        process.exit(1);
+      }
+
+      await googleContactsSyncCommand({
+        userEmail: options.userEmail,
+        direction: options.direction as 'export' | 'import' | 'both',
+        dryRun: options.dryRun,
+        forceFull: options.forceFull,
+        noLlm: !options.llm,
+        threshold,
+      });
+    } catch (error) {
+      console.error(errorMsg(`Google contacts sync failed: ${error}`));
+      process.exit(1);
+    }
+  });
+
+// Google calendar sync subcommand
+googleCommand
+  .command('calendar-sync')
+  .description('Sync calendar events from Google Calendar')
+  .requiredOption('--user-email <email>', 'User email or ID')
+  .option('--week <week>', 'Week identifier (YYYY-WW) or "current"', 'current')
+  .option('--weeks <weeks>', 'Multiple week identifiers (comma-separated)')
+  .option('--calendar-id <id>', 'Google Calendar ID', 'primary')
+  .action(async options => {
+    try {
+      const { googleCalendarSyncCommand } = await import('./commands/google-calendar-sync.js');
+
+      const weeks = options.weeks ? options.weeks.split(',').map((w: string) => w.trim()) : undefined;
+
+      await googleCalendarSyncCommand({
+        userEmail: options.userEmail,
+        week: options.week,
+        weeks,
+        calendarId: options.calendarId,
+      });
+    } catch (error) {
+      console.error(errorMsg(`Google calendar sync failed: ${error}`));
+      process.exit(1);
+    }
+  });
+
 // List entity types command
 program
   .command('list-types')

@@ -139,6 +139,108 @@ mcp-memory list-types
 ```
 Show available entity types, person types, and importance levels.
 
+### Google Integration Commands
+
+#### Google Authentication Status
+```bash
+mcp-memory google auth --user-email bob@matsuoka.com
+```
+
+Check Google account connection status and manage authentication.
+
+Options:
+- `--user-email <email>` - User email (required)
+- `-u <email>` - Short form of --user-email
+- `--disconnect` - Disconnect Google account and revoke access
+
+#### Google Contacts Sync
+```bash
+mcp-memory google contacts-sync --user-email bob@matsuoka.com
+```
+
+Synchronize contacts between MCP Memory and Google Contacts with LLM-based deduplication.
+
+Options:
+- `--user-email <email>` - User email (required)
+- `-u <email>` - Short form of --user-email
+- `-d, --direction <dir>` - Sync direction: import, export, or both (default: both)
+- `--dry-run` - Preview changes without applying
+- `--auto-merge` - Automatically merge duplicates above threshold
+- `--threshold <number>` - Deduplication confidence threshold 0-100 (default: 90)
+- `--no-llm` - Disable LLM deduplication (use simple rules only)
+- `--force-full` - Force full sync (ignore syncToken)
+- `--batch-size <number>` - Contacts per batch (default: 100)
+
+Examples:
+```bash
+# Import from Google with auto-merge
+mcp-memory google contacts-sync -u bob@matsuoka.com --direction import --auto-merge
+
+# Dry run to preview changes
+mcp-memory google contacts-sync -u bob@matsuoka.com --dry-run
+
+# Bidirectional sync with conservative merging
+mcp-memory google contacts-sync -u bob@matsuoka.com --direction both --threshold 95
+```
+
+#### Google Calendar Sync
+```bash
+mcp-memory google calendar-sync --user-email bob@matsuoka.com
+```
+
+Sync calendar events from Google Calendar (read-only) organized by week.
+
+Options:
+- `--user-email <email>` - User email (required)
+- `-u <email>` - Short form of --user-email
+- `-w, --week <identifier>` - Week identifier in YYYY-WW format (default: current week)
+- `--weeks <list>` - Comma-separated list of weeks to sync
+- `--calendar-ids <list>` - Comma-separated calendar IDs (default: primary)
+- `--create-entities` - Auto-create entities for unknown attendees
+- `--skip-recurring` - Skip recurring event expansion
+- `--max-events <number>` - Maximum events per week (default: 1000)
+
+Examples:
+```bash
+# Sync current week
+mcp-memory google calendar-sync -u bob@matsuoka.com
+
+# Sync specific week with entity creation
+mcp-memory google calendar-sync -u bob@matsuoka.com --week 2025-41 --create-entities
+
+# Sync multiple weeks
+mcp-memory google calendar-sync -u bob@matsuoka.com --weeks 2025-40,2025-41,2025-42
+```
+
+### macOS Contacts Sync
+
+#### Bidirectional Contact Sync
+```bash
+mcp-memory contacts sync --user-email bob@matsuoka.com
+```
+
+Synchronize contacts between MCP Memory and macOS Contacts app with LLM-based deduplication.
+
+Options:
+- `--user-email <email>` - User email (required)
+- `-d, --direction <dir>` - Sync direction: export, import, or both (default: both)
+- `--dry-run` - Preview changes without making them
+- `--auto-merge` - Automatically merge duplicates when confidence >= threshold
+- `--threshold <number>` - Deduplication confidence threshold 0-100 (default: 90)
+- `--no-llm` - Disable LLM-based deduplication (use simple rules only)
+
+Examples:
+```bash
+# Import from macOS Contacts
+mcp-memory contacts sync -u bob@matsuoka.com --direction import
+
+# Export to macOS Contacts
+mcp-memory contacts sync -u bob@matsuoka.com --direction export
+
+# Bidirectional sync with auto-merge
+mcp-memory contacts sync -u bob@matsuoka.com --direction both --auto-merge
+```
+
 ## File Locations
 
 ### User Configuration
@@ -280,3 +382,12 @@ After successful installation, the MCP memory server will be available in Claude
 - And more...
 
 See the main README for full MCP server capabilities.
+
+## Related Documentation
+
+- **[Google Setup Guide](./GOOGLE_SETUP_GUIDE.md)**: Set up Google Contacts and Calendar sync
+- **[Google Contacts Sync Guide](./GOOGLE_CONTACTS_SYNC_GUIDE.md)**: Detailed contacts sync documentation
+- **[Google Calendar Sync Guide](./GOOGLE_CALENDAR_SYNC_GUIDE.md)**: Calendar sync usage guide
+- **[Google Migration Guide](./GOOGLE_MIGRATION_GUIDE.md)**: Migrate from macOS Contacts to Google
+- **[Contacts Sync Guide](./CONTACTS_SYNC_GUIDE.md)**: macOS Contacts sync documentation
+- **[Google API Reference](../api/GOOGLE_API_REFERENCE.md)**: Web API documentation

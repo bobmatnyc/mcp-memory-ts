@@ -1,9 +1,13 @@
 import { ConnectionStatus } from '@/components/dashboard/connection-status';
 import { QuickStats } from '@/components/dashboard/quick-stats';
 import { NavCards } from '@/components/dashboard/nav-cards';
+import { GoogleConnectionStatus } from '@/components/dashboard/google-connection-status';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { Calendar, Users, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,11 +94,24 @@ export default async function DashboardPage() {
           <Card className="mb-8 border-yellow-200 bg-yellow-50">
             <CardContent className="pt-6">
               <p className="text-yellow-800 text-center">
-                Unable to load statistics. Please check your database connection in Settings.
+                Unable to load statistics. Auto-connection failed - please check your database credentials in Settings.
               </p>
             </CardContent>
           </Card>
         )}
+
+        {/* Google Integration Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">Google Integration</h2>
+            <Link href="/settings#google">
+              <Button variant="outline" size="sm">
+                Manage
+              </Button>
+            </Link>
+          </div>
+          <GoogleConnectionStatus />
+        </div>
 
         {/* Navigation Cards */}
         <div className="mb-8">

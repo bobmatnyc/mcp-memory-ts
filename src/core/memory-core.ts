@@ -312,7 +312,7 @@ export class MemoryCore {
 
           const result = await this.db.execute(sql, [userId, `$.${field}`, trimmedValue, limit]);
 
-          const metadataResults = result.rows.map(row =>
+          const metadataResults = result.rows.map((row: any) =>
             SchemaCompatibility.mapMemoryFromDatabase(row as any)
           );
 

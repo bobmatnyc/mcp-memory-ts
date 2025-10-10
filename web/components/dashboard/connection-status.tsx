@@ -24,7 +24,7 @@ export function ConnectionStatus({ databaseStatus, openAiStatus }: ConnectionSta
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'connected':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Connected</Badge>;
+        return <Badge variant="success">Auto-Connected</Badge>;
       case 'disconnected':
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Disconnected</Badge>;
       case 'checking':
@@ -36,7 +36,7 @@ export function ConnectionStatus({ databaseStatus, openAiStatus }: ConnectionSta
     <Card>
       <CardHeader>
         <CardTitle>Connection Health</CardTitle>
-        <CardDescription>Status of database and API connections</CardDescription>
+        <CardDescription>Automatic connection status - connects on every request</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between p-3 border rounded-lg">
@@ -44,7 +44,9 @@ export function ConnectionStatus({ databaseStatus, openAiStatus }: ConnectionSta
             {getStatusIcon(databaseStatus)}
             <div>
               <p className="font-medium">Database</p>
-              <p className="text-sm text-muted-foreground">Turso LibSQL</p>
+              <p className="text-sm text-muted-foreground">
+                {databaseStatus === 'connected' ? 'Auto-connection established' : 'Turso LibSQL'}
+              </p>
             </div>
           </div>
           {getStatusBadge(databaseStatus)}
@@ -55,7 +57,9 @@ export function ConnectionStatus({ databaseStatus, openAiStatus }: ConnectionSta
             {getStatusIcon(openAiStatus)}
             <div>
               <p className="font-medium">OpenAI API</p>
-              <p className="text-sm text-muted-foreground">Embeddings Service</p>
+              <p className="text-sm text-muted-foreground">
+                {openAiStatus === 'connected' ? 'Auto-connection established' : 'Embeddings Service'}
+              </p>
             </div>
           </div>
           {getStatusBadge(openAiStatus)}

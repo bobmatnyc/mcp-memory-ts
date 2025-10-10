@@ -45,6 +45,10 @@ export const icons = {
   book: '📖',
   bulb: '💡',
   contacts: '👥',
+  cloud: '☁️',
+  calendar: '📅',
+  key: '🔑',
+  cross: '✗',
 };
 
 /**

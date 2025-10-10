@@ -124,7 +124,7 @@ export class UsageTrackingDB {
       [userId, `${yearMonth}%`]
     );
 
-    return results.rows.map(row => ({
+    return results.rows.map((row: any) => ({
       date: row.date,
       provider: row.api_provider,
       tokens: Number(row.daily_tokens) || 0,

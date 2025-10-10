@@ -11,6 +11,8 @@ A modern TypeScript implementation of a cloud-based vector memory service for AI
 - **🏢 Entity Management**: Track people, organizations, projects, and relationships
 - **📚 Interaction History**: Store and retrieve conversation history with context
 - **📱 Contacts Sync**: True bidirectional sync with macOS Contacts using LLM-based deduplication
+- **🔄 Google Sync**: Google Contacts and Calendar integration with incremental sync (v1.7.0)
+- **📅 Calendar Tracking**: Week-based Google Calendar event sync with attendee linking
 - **🌐 Web Interface**: Modern Next.js web UI for visual memory management (v1.3.0+)
 - **🔌 MCP Protocol**: JSON-RPC 2.0 over stdio (local) and HTTP (remote)
 - **🌐 REST API**: HTTP interface for web applications
@@ -86,6 +88,11 @@ EMBEDDING_MONITOR_INTERVAL=60000  # Check every 60 seconds
 # Web Interface (v1.3.0+)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
 CLERK_SECRET_KEY=your-clerk-secret-key
+
+# Google Integration (v1.7.0+)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 ```
 
 ## Usage
@@ -265,11 +272,19 @@ See [docs/testing/QA_TEST_REPORT.md](./docs/testing/QA_TEST_REPORT.md) for detai
 - [CLI Guide](./docs/guides/CLI-GUIDE.md) - Command-line interface
 - [Contacts Sync Guide](./docs/guides/CONTACTS_SYNC_GUIDE.md) - Bidirectional sync with macOS Contacts
 - [Contacts Sync Quick Start](./docs/guides/CONTACTS_SYNC_QUICK_START.md) - Quick start for contacts sync
+- [Google Setup Guide](./docs/guides/GOOGLE_SETUP_GUIDE.md) - Google Cloud setup and OAuth configuration
+- [Google Contacts Sync Guide](./docs/guides/GOOGLE_CONTACTS_SYNC_GUIDE.md) - Google Contacts sync with LLM deduplication
+- [Google Calendar Sync Guide](./docs/guides/GOOGLE_CALENDAR_SYNC_GUIDE.md) - Google Calendar week-based sync
+- [Google Migration Guide](./docs/guides/GOOGLE_MIGRATION_GUIDE.md) - Migrate from macOS to Google sync
 - [Migration Guide](./docs/guides/MIGRATION_QUICK_START.md) - Schema migrations
 
 ### Features
 - [Web Interface](./docs/features/WEB_INTERFACE.md) - Web UI setup and usage
+- [Google Sync](./docs/features/GOOGLE_SYNC.md) - Google integration overview and features
 - [Contacts Sync Performance](./docs/features/CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md) - Sync optimization
+
+### API Reference
+- [Google API Reference](./docs/api/GOOGLE_API_REFERENCE.md) - REST API for Google sync
 
 ### Security
 - [Clerk Implementation](./docs/security/CLERK_IMPLEMENTATION_NOTES.md) - Clerk setup guide

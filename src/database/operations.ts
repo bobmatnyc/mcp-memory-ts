@@ -160,7 +160,7 @@ export class DatabaseOperations {
       'SELECT * FROM entities WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
       [userId, limit]
     );
-    return result.rows.map(row => this.mapRowToEntity(row as any));
+    return result.rows.map((row: any) => this.mapRowToEntity(row as any));
   }
 
   async searchEntities(userId: string, query: string, limit = 10): Promise<Entity[]> {
@@ -174,7 +174,7 @@ export class DatabaseOperations {
       [userId, query, limit]
     );
 
-    return result.rows.map(row => this.mapRowToEntity(row as any));
+    return result.rows.map((row: any) => this.mapRowToEntity(row as any));
   }
 
   async updateEntity(id: string, updates: Partial<Entity>, userId: string): Promise<Entity | null> {
@@ -279,7 +279,7 @@ export class DatabaseOperations {
       'SELECT * FROM memories WHERE user_id = ? AND is_archived = 0 ORDER BY created_at DESC LIMIT ?',
       [userId, limit]
     );
-    return result.rows.map(row => this.mapRowToMemory(row as any));
+    return result.rows.map((row: any) => this.mapRowToMemory(row as any));
   }
 
   async searchMemories(userId: string, query: string, limit = 10): Promise<Memory[]> {
@@ -314,7 +314,7 @@ export class DatabaseOperations {
           [userId, `%${words[0]}%`, `%${words[0]}%`, `%${words[0]}%`, limit]
         );
 
-        return result.rows.map(row => this.mapRowToMemory(row as any));
+        return result.rows.map((row: any) => this.mapRowToMemory(row as any));
       }
 
       // For multiple words, use OR logic to find memories containing ANY of the words
@@ -344,7 +344,7 @@ export class DatabaseOperations {
         [userId, ...params, limit]
       );
 
-      return result.rows.map(row => this.mapRowToMemory(row as any));
+      return result.rows.map((row: any) => this.mapRowToMemory(row as any));
     } catch (error) {
       console.error('Search memories error:', error);
       // Return empty array on error rather than throwing
