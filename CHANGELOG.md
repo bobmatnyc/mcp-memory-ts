@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.7.1
+
+### Patch Changes
+
+- Fix critical user isolation vulnerabilities and add LOG_LEVEL-aware logging
+
+  **Security Fixes:**
+  - Fix CVE-INTERNAL-2025-001: recall_memories user isolation vulnerability
+  - Fix CVE-INTERNAL-2025-002: get_memory_stats cross-user information disclosure
+  - Fix CVE-INTERNAL-2025-003: update_missing_embeddings multi-layer isolation with SQL filtering
+  - Fix CVE-INTERNAL-2025-004: store_memory defense-in-depth improvement
+
+  **Logging Improvements:**
+  - Add LOG_LEVEL environment variable support (debug, info, warn, error)
+  - Implement smart state tracking to prevent repetitive log messages
+  - Change inappropriate console.error() to proper log levels
+  - Add comprehensive LOG_LEVEL configuration guide
+
+  **Documentation:**
+  - New LOG_LEVEL_GUIDE.md for users
+  - Security test report with vulnerability analysis
+  - Technical logging improvements summary
+
 ## 1.7.0
 
 ### Minor Changes
