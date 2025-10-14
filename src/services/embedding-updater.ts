@@ -43,11 +43,14 @@ export class EmbeddingUpdater {
 
   /**
    * Log a message at the specified level
+   * CRITICAL: Always use stderr to avoid breaking MCP stdio protocol
+   * stdout is reserved for JSON-RPC messages only
    */
   private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, ...args: any[]): void {
     if (this.shouldLog(level)) {
-      const logFn = level === 'error' ? console.error : console.log;
-      logFn(`[EmbeddingUpdater] ${message}`, ...args);
+      // CRITICAL: Always use stderr to avoid breaking MCP stdio protocol
+      // stdout is reserved for JSON-RPC messages only
+      console.error(`[EmbeddingUpdater] ${message}`, ...args);
     }
   }
 

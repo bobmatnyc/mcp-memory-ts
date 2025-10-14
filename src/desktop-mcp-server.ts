@@ -55,9 +55,10 @@ class SimpleMCPServer {
     this.debugEnabled = process.env.MCP_DEBUG === '1';
     this.logLevel = process.env.LOG_LEVEL?.toLowerCase() || 'info';
 
-    // Optional: Log the log level on startup
+    // CRITICAL: Use stderr to avoid breaking MCP stdio protocol
+    // stdout is reserved for JSON-RPC messages only
     if (this.debugEnabled || this.logLevel === 'debug') {
-      console.log(`[MCPServer] Log level: ${this.logLevel}`);
+      console.error(`[MCPServer] Log level: ${this.logLevel}`);
     }
   }
 
