@@ -10,7 +10,11 @@
  */
 
 import { randomUUID } from 'crypto';
-import { GmailClient, getWeekDates, getCurrentWeekIdentifier } from '../integrations/gmail-client.js';
+import {
+  GmailClient,
+  getWeekDates,
+  getCurrentWeekIdentifier,
+} from '../integrations/gmail-client.js';
 import { GmailExtractor } from './gmail-extractor.js';
 import type { ExtractedMemory, ExtractedEntity } from './gmail-extractor.js';
 import { DatabaseConnection } from '../database/connection.js';
@@ -126,8 +130,14 @@ export class GmailExtractionService {
         const extraction = await extractor.extractFromEmails(emailBatch.emails, userId);
 
         // 7. Save to database
-        console.log(`Saving ${extraction.memories.length} memories and ${extraction.entities.length} entities...`);
-        const saveResult = await this.saveExtractions(userId, extraction.memories, extraction.entities);
+        console.log(
+          `Saving ${extraction.memories.length} memories and ${extraction.entities.length} entities...`
+        );
+        const saveResult = await this.saveExtractions(
+          userId,
+          extraction.memories,
+          extraction.entities
+        );
 
         // 8. Update extraction log
         await this.completeExtractionLog(logId, {
@@ -146,13 +156,14 @@ export class GmailExtractionService {
           entities_created: saveResult.entities_created,
           summary: extraction.summary,
         };
-
       } catch (error) {
         // Mark as failed
-        await this.failExtractionLog(logId, error instanceof Error ? error.message : 'Unknown error');
+        await this.failExtractionLog(
+          logId,
+          error instanceof Error ? error.message : 'Unknown error'
+        );
         throw error;
       }
-
     } catch (error) {
       console.error('Extraction failed:', error);
       return {
@@ -205,7 +216,10 @@ export class GmailExtractionService {
   /**
    * Check if week already extracted
    */
-  private async checkExtractionLog(userId: string, weekIdentifier: string): Promise<ExtractionLog | null> {
+  private async checkExtractionLog(
+    userId: string,
+    weekIdentifier: string
+  ): Promise<ExtractionLog | null> {
     const result = await this.db.execute(
       `SELECT * FROM gmail_extraction_log
        WHERE user_id = ? AND week_identifier = ? AND status = 'completed'`,
@@ -293,23 +307,19 @@ export class GmailExtractionService {
     // Save entities first
     for (const entityData of entities) {
       try {
-        await this.memoryCore.createEntity(
-          entityData.name,
-          entityData.entity_type as EntityType,
-          {
-            userId,
-            personType: entityData.person_type,
-            description: entityData.description,
-            company: entityData.company,
-            title: entityData.title,
-            email: entityData.email,
-            phone: entityData.phone,
-            importance: entityData.importance,
-            tags: entityData.tags,
-            notes: entityData.notes,
-            metadata: entityData.metadata,
-          }
-        );
+        await this.memoryCore.createEntity(entityData.name, entityData.entity_type as EntityType, {
+          userId,
+          personType: entityData.person_type,
+          description: entityData.description,
+          company: entityData.company,
+          title: entityData.title,
+          email: entityData.email,
+          phone: entityData.phone,
+          importance: entityData.importance,
+          tags: entityData.tags,
+          notes: entityData.notes,
+          metadata: entityData.metadata,
+        });
         entitiesCreated++;
       } catch (error) {
         console.error(`Failed to save entity ${entityData.name}:`, error);

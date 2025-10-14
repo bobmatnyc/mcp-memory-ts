@@ -149,10 +149,7 @@ export class GoogleCalendarClient {
    * @param calendarId - Calendar ID (default: 'primary')
    * @returns Calendar event
    */
-  async getEvent(
-    eventId: string,
-    calendarId = 'primary'
-  ): Promise<SyncResult<CalendarEvent>> {
+  async getEvent(eventId: string, calendarId = 'primary'): Promise<SyncResult<CalendarEvent>> {
     try {
       const response = await this.calendar.events.get({
         calendarId,

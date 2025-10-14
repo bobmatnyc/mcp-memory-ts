@@ -285,8 +285,8 @@ TURSO_AUTH_TOKEN=your-auth-token
 OPENAI_API_KEY=your-openai-api-key
 
 # Optional Configuration
-LOG_LEVEL=INFO
-MCP_DEBUG=0
+LOG_LEVEL=info              # Options: debug, info (default), warn, error
+MCP_DEBUG=0                 # Set to 1 for detailed MCP protocol debugging
 DEFAULT_USER_EMAIL=user@example.com
 
 # Embedding Monitoring (v1.1.0+)
@@ -652,6 +652,24 @@ yarn install
 - Review conflict resolution settings
 - See [CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md](./docs/features/CONTACTS_SYNC_PERFORMANCE_OPTIMIZATION.md)
 
+### Log Spam Issues (v1.7.0+)
+**Problem**: Too many logs in Claude Desktop or excessive log file size
+**Solutions**:
+- Set appropriate LOG_LEVEL in environment configuration
+- Use `LOG_LEVEL=error` for production (silent mode)
+- Use `LOG_LEVEL=info` for normal operation (default)
+- Use `LOG_LEVEL=debug` only when troubleshooting
+- Smart logging prevents repetitive messages automatically
+- See [LOG_LEVEL_GUIDE.md](./docs/guides/LOG_LEVEL_GUIDE.md) for complete documentation
+
+**Example Configuration**:
+```bash
+# In .env or Claude Desktop config
+LOG_LEVEL=info  # Balanced logging (recommended)
+# or
+LOG_LEVEL=error  # Silent mode for production
+```
+
 ## Key Files & Responsibilities
 
 ### Core Files
@@ -727,6 +745,15 @@ Remember these project-specific patterns:
 - Log errors with context (user, operation, timestamp)
 - Handle edge cases gracefully (empty results, missing data)
 - Provide actionable error messages for users
+
+### Logging Patterns (v1.7.0+)
+- Use proper log levels: `debug` < `info` < `warn` < `error`
+- Respect `LOG_LEVEL` environment variable in all logging
+- Use `console.log()` for info/debug, `console.error()` for errors
+- Implement smart logging to prevent repetitive messages
+- Track state changes to only log meaningful events
+- Always log actual errors regardless of LOG_LEVEL
+- Use descriptive prefixes like `[ComponentName]` for clarity
 
 ## Quick Reference
 
@@ -813,7 +840,8 @@ mcp-memory update
 
 ## Version History & Changes
 
-### v1.7.0 (Planned - October 2025)
+### v1.7.0 (In Development - October 2025)
+- **Logging Improvements**: LOG_LEVEL-aware logging with smart state tracking (v1.7.0)
 - **Google Contacts Sync**: Bidirectional sync with incremental updates (syncToken)
 - **Google Calendar Sync**: Week-based event tracking with attendee linking
 - **OAuth Integration**: Secure Google authentication with Clerk session management
@@ -899,6 +927,7 @@ mcp-memory update
 ### Guides
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Deployment guide
 - [CLI-GUIDE.md](./docs/guides/CLI-GUIDE.md) - Complete CLI documentation
+- [LOG_LEVEL_GUIDE.md](./docs/guides/LOG_LEVEL_GUIDE.md) - Log verbosity configuration (v1.7.0+)
 - [CHANGESET_GUIDE.md](./docs/guides/CHANGESET_GUIDE.md) - Version management and releases
 - [MIGRATION_QUICK_START.md](./docs/guides/MIGRATION_QUICK_START.md) - Migration guide
 - [CONTACTS_SYNC_QUICK_START.md](./docs/guides/CONTACTS_SYNC_QUICK_START.md) - Contacts sync guide

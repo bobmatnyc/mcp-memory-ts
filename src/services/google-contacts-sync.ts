@@ -79,7 +79,9 @@ export class GoogleContactsSyncService {
       // Get authenticated client
       const authClient = await this.googleAuth.getAuthClient(options.userId);
       if (!authClient) {
-        throw new Error('Google authentication required. Please connect your Google account first.');
+        throw new Error(
+          'Google authentication required. Please connect your Google account first.'
+        );
       }
 
       const peopleClient = new GooglePeopleClient(authClient);
@@ -135,11 +137,7 @@ export class GoogleContactsSyncService {
       // Handle expired sync token
       if (syncResult.error.type === 'EXPIRED_SYNC_TOKEN') {
         console.log('⚠️  Sync token expired, performing full sync...');
-        return this.importFromGoogle(
-          client,
-          { ...options, forceFull: true },
-          result
-        );
+        return this.importFromGoogle(client, { ...options, forceFull: true }, result);
       }
       throw new Error(`Google API error: ${syncResult.error.message}`);
     }
@@ -172,11 +170,7 @@ export class GoogleContactsSyncService {
         try {
           // Convert VCardData to Entity update format
           const updateData = vcardToEntity(match.external, user.id);
-          await this.db.updateEntity(
-            String(match.mcp.id),
-            updateData,
-            user.id
-          );
+          await this.db.updateEntity(String(match.mcp.id), updateData, user.id);
           result.updated++;
         } catch (error) {
           result.errors.push(`Failed to update ${match.mcp.name}: ${error}`);
@@ -290,11 +284,13 @@ export class GoogleContactsSyncService {
           if (resourceName) {
             // Update existing contact
             const googleContact = this.entityToGoogleContact(entity);
-            const updateResult = await client.updateContact(
-              resourceName,
-              googleContact,
-              ['names', 'emailAddresses', 'phoneNumbers', 'organizations', 'biographies']
-            );
+            const updateResult = await client.updateContact(resourceName, googleContact, [
+              'names',
+              'emailAddresses',
+              'phoneNumbers',
+              'organizations',
+              'biographies',
+            ]);
 
             if (updateResult.ok) {
               result.exported++;

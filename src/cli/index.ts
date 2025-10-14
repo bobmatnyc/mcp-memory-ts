@@ -263,7 +263,9 @@ googleCommand
     try {
       const { googleCalendarSyncCommand } = await import('./commands/google-calendar-sync.js');
 
-      const weeks = options.weeks ? options.weeks.split(',').map((w: string) => w.trim()) : undefined;
+      const weeks = options.weeks
+        ? options.weeks.split(',').map((w: string) => w.trim())
+        : undefined;
 
       await googleCalendarSyncCommand({
         userEmail: options.userEmail,

@@ -167,7 +167,7 @@ export class GoogleAuthService {
       });
 
       // Auto-refresh token handler
-      client.on('tokens', async (newTokens) => {
+      client.on('tokens', async newTokens => {
         console.log('🔄 OAuth tokens auto-refreshed');
         const updatedTokens: GoogleOAuthTokens = {
           access_token: newTokens.access_token || tokens.access_token,
@@ -199,7 +199,7 @@ export class GoogleAuthService {
         user = await this.db.getUserById(userId);
       }
 
-      return !!(user?.metadata?.googleOAuthTokens);
+      return !!user?.metadata?.googleOAuthTokens;
     } catch (error) {
       console.error('Failed to check connection status:', error);
       return false;

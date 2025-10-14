@@ -20,6 +20,7 @@ export class EmbeddingUpdater {
   private batchSize: number;
   private retryAttempts: number;
   private retryDelay: number;
+  private lastMissingCount: number = 0; // Track state for smart logging
 
   constructor(db: DatabaseConnection, openaiApiKey?: string, options: EmbeddingUpdateOptions = {}) {
     this.db = db;
@@ -27,6 +28,27 @@ export class EmbeddingUpdater {
     this.batchSize = options.batchSize || 10;
     this.retryAttempts = options.retryAttempts || 3;
     this.retryDelay = options.retryDelay || 1000;
+  }
+
+  /**
+   * Check if a message should be logged based on LOG_LEVEL
+   */
+  private shouldLog(level: 'debug' | 'info' | 'warn' | 'error'): boolean {
+    const logLevel = process.env.LOG_LEVEL?.toLowerCase() || 'info';
+    const levels = ['debug', 'info', 'warn', 'error'];
+    const currentIndex = levels.indexOf(logLevel);
+    const messageIndex = levels.indexOf(level);
+    return messageIndex >= currentIndex;
+  }
+
+  /**
+   * Log a message at the specified level
+   */
+  private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, ...args: any[]): void {
+    if (this.shouldLog(level)) {
+      const logFn = level === 'error' ? console.error : console.log;
+      logFn(`[EmbeddingUpdater] ${message}`, ...args);
+    }
   }
 
   /**
@@ -38,7 +60,7 @@ export class EmbeddingUpdater {
     // Process queue if not already processing
     if (!this.isProcessing) {
       this.processQueue().catch(error => {
-        console.error('[EmbeddingUpdater] Queue processing error:', error);
+        this.log('error', 'Queue processing error:', error);
       });
     }
   }
@@ -51,7 +73,7 @@ export class EmbeddingUpdater {
 
     if (!this.isProcessing) {
       this.processQueue().catch(error => {
-        console.error('[EmbeddingUpdater] Queue processing error:', error);
+        this.log('error', 'Queue processing error:', error);
       });
     }
   }
@@ -130,21 +152,20 @@ export class EmbeddingUpdater {
             [JSON.stringify(embedding), memory.id]
           );
 
-          if (process.env.MCP_DEBUG) {
-            console.error(`[EmbeddingUpdater] Updated embedding for memory ${memory.id}`);
-          }
+          this.log('debug', `Updated embedding for memory ${memory.id}`);
 
           return; // Success
         } else {
-          console.warn(`[EmbeddingUpdater] No embedding generated for memory ${memory.id}`);
+          this.log('warn', `No embedding generated for memory ${memory.id}`);
           return; // Skip if no API key
         }
       } catch (error) {
         attempts++;
 
         if (attempts >= this.retryAttempts) {
-          console.error(
-            `[EmbeddingUpdater] Failed to update embedding for memory ${memory.id} after ${attempts} attempts:`,
+          this.log(
+            'error',
+            `Failed to update embedding for memory ${memory.id} after ${attempts} attempts:`,
             error
           );
           return;
@@ -182,15 +203,19 @@ export class EmbeddingUpdater {
   /**
    * Update all memories without embeddings
    */
-  async updateAllMissingEmbeddings(): Promise<{ updated: number; failed: number }> {
-    const result = await this.db.execute(`
+  async updateAllMissingEmbeddings(userId: string): Promise<{ updated: number; failed: number }> {
+    const result = await this.db.execute(
+      `
       SELECT id
       FROM memories
-      WHERE embedding IS NULL
+      WHERE (embedding IS NULL
          OR embedding = '[]'
-         OR json_array_length(embedding) = 0
+         OR json_array_length(embedding) = 0)
+        AND user_id = ?
       ORDER BY created_at DESC
-    `);
+    `,
+      [userId]
+    );
 
     const memoryIds = (result.rows as any[]).map(row => row.id);
 
@@ -198,7 +223,11 @@ export class EmbeddingUpdater {
       return { updated: 0, failed: 0 };
     }
 
-    console.error(`[EmbeddingUpdater] Found ${memoryIds.length} memories without embeddings`);
+    // Smart logging: only log when count changes
+    if (memoryIds.length > 0 && this.lastMissingCount !== memoryIds.length) {
+      this.log('info', `Found ${memoryIds.length} memories without embeddings`);
+      this.lastMissingCount = memoryIds.length;
+    }
 
     let updated = 0;
     let failed = 0;
@@ -211,7 +240,7 @@ export class EmbeddingUpdater {
         await this.processBatch(batch);
         updated += batch.length;
       } catch (error) {
-        console.error(`[EmbeddingUpdater] Batch processing error:`, error);
+        this.log('error', 'Batch processing error:', error);
         failed += batch.length;
       }
 
@@ -228,22 +257,23 @@ export class EmbeddingUpdater {
   /**
    * Monitor and update embeddings periodically
    */
-  async startMonitoring(intervalMs: number = 60000): Promise<void> {
-    console.error(`[EmbeddingUpdater] Starting monitoring with ${intervalMs}ms interval`);
+  async startMonitoring(userId: string, intervalMs: number = 60000): Promise<void> {
+    this.log('info', `Starting monitoring with ${intervalMs}ms interval`);
 
     // Initial update
-    await this.updateAllMissingEmbeddings();
+    await this.updateAllMissingEmbeddings(userId);
 
     // Set up periodic updates
     // eslint-disable-next-line no-undef
     setInterval(async () => {
       try {
-        const stats = await this.updateAllMissingEmbeddings();
+        const stats = await this.updateAllMissingEmbeddings(userId);
+        // Only log if updates occurred
         if (stats.updated > 0) {
-          console.error(`[EmbeddingUpdater] Updated ${stats.updated} embeddings`);
+          this.log('info', `Updated ${stats.updated} embeddings`);
         }
       } catch (error) {
-        console.error('[EmbeddingUpdater] Monitoring error:', error);
+        this.log('error', 'Monitoring error:', error);
       }
     }, intervalMs);
   }

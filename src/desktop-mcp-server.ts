@@ -46,12 +46,19 @@ interface JsonRpcResponse {
 // Simple MCP Server
 class SimpleMCPServer {
   private debugEnabled = false;
+  private logLevel: string;
   private requestCounter = 0;
   private memoryCore: MemoryCore | null = null;
   private db: any = null;
 
   constructor() {
     this.debugEnabled = process.env.MCP_DEBUG === '1';
+    this.logLevel = process.env.LOG_LEVEL?.toLowerCase() || 'info';
+
+    // Optional: Log the log level on startup
+    if (this.debugEnabled || this.logLevel === 'debug') {
+      console.log(`[MCPServer] Log level: ${this.logLevel}`);
+    }
   }
 
   private ensureValidId(id?: string | number | null): string | number {
@@ -411,11 +418,13 @@ class SimpleMCPServer {
             }
           }
 
+          const storeUserId = this.getUserId();
           const addResult = await this.memoryCore.addMemory(
             title,
             args.content,
             inputType as any, // Pass the actual type string
             {
+              userId: storeUserId,
               tags: Array.isArray(tags) ? tags : [tags],
               importance: importanceValue as any, // Pass decimal importance directly
               metadata: metadataToStore,
@@ -437,10 +446,12 @@ class SimpleMCPServer {
           break;
 
         case 'recall_memories':
+          const recallUserId = this.getUserId();
           const searchResult = await this.memoryCore.searchMemories(args.query, {
             limit: args.limit || 10,
             threshold: args.threshold || 0.3,
             strategy: args.strategy || 'composite',
+            userId: recallUserId,
           });
 
           if (searchResult.status === MCPToolResultStatus.SUCCESS && searchResult.data) {
@@ -516,7 +527,8 @@ class SimpleMCPServer {
 
 
         case 'get_memory_stats':
-          const statsResult = await this.memoryCore.getStatistics();
+          const statsUserId = this.getUserId();
+          const statsResult = await this.memoryCore.getStatistics(statsUserId);
 
           if (statsResult.status === MCPToolResultStatus.SUCCESS && statsResult.data) {
             const stats = statsResult.data as any;
@@ -535,7 +547,8 @@ class SimpleMCPServer {
           break;
 
         case 'update_missing_embeddings':
-          const embeddingUpdateResult = await this.memoryCore.updateMissingEmbeddings();
+          const embeddingUserId = this.getUserId();
+          const embeddingUpdateResult = await this.memoryCore.updateMissingEmbeddings(embeddingUserId);
 
           if (embeddingUpdateResult.status === MCPToolResultStatus.SUCCESS && embeddingUpdateResult.data) {
             const updateStats = embeddingUpdateResult.data as any;

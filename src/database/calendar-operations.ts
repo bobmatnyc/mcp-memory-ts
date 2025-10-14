@@ -87,7 +87,10 @@ export class CalendarOperations {
    * @param weekIdentifier - Week identifier (YYYY-WW)
    * @returns Array of calendar events
    */
-  async getEventsForWeek(userId: string, weekIdentifier: WeekIdentifier): Promise<CalendarEventData[]> {
+  async getEventsForWeek(
+    userId: string,
+    weekIdentifier: WeekIdentifier
+  ): Promise<CalendarEventData[]> {
     const result = await this.db.execute(
       `SELECT * FROM calendar_events
        WHERE user_id = ? AND week_identifier = ?
@@ -105,7 +108,10 @@ export class CalendarOperations {
    * @param weekIdentifiers - Array of week identifiers
    * @returns Array of calendar events
    */
-  async getEventsForWeeks(userId: string, weekIdentifiers: WeekIdentifier[]): Promise<CalendarEventData[]> {
+  async getEventsForWeeks(
+    userId: string,
+    weekIdentifiers: WeekIdentifier[]
+  ): Promise<CalendarEventData[]> {
     const placeholders = weekIdentifiers.map(() => '?').join(',');
     const sql = `
       SELECT * FROM calendar_events
@@ -125,7 +131,11 @@ export class CalendarOperations {
    * @param endDate - End date (ISO 8601)
    * @returns Array of calendar events
    */
-  async getEventsInRange(userId: string, startDate: string, endDate: string): Promise<CalendarEventData[]> {
+  async getEventsInRange(
+    userId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<CalendarEventData[]> {
     const result = await this.db.execute(
       `SELECT * FROM calendar_events
        WHERE user_id = ? AND start_time >= ? AND start_time <= ?

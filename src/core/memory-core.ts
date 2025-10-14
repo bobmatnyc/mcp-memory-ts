@@ -65,7 +65,9 @@ export class MemoryCore {
     // Start embedding monitoring if enabled
     if (this.embeddingUpdater && process.env.ENABLE_EMBEDDING_MONITOR === 'true') {
       const interval = parseInt(process.env.EMBEDDING_MONITOR_INTERVAL || '60000', 10);
-      await this.embeddingUpdater.startMonitoring(interval);
+      if (this.defaultUserId) {
+        await this.embeddingUpdater.startMonitoring(this.defaultUserId, interval);
+      }
     }
   }
 
@@ -982,7 +984,7 @@ export class MemoryCore {
   /**
    * Manually trigger embedding update for all memories without embeddings
    */
-  async updateMissingEmbeddings(): Promise<MCPToolResult> {
+  async updateMissingEmbeddings(userId?: string): Promise<MCPToolResult> {
     if (!this.embeddingUpdater) {
       return {
         status: MCPToolResultStatus.ERROR,
@@ -992,7 +994,8 @@ export class MemoryCore {
     }
 
     try {
-      const stats = await this.embeddingUpdater.updateAllMissingEmbeddings();
+      const effectiveUserId = this.getUserId(userId);
+      const stats = await this.embeddingUpdater.updateAllMissingEmbeddings(effectiveUserId);
       return {
         status: MCPToolResultStatus.SUCCESS,
         message: `Updated ${stats.updated} embeddings`,

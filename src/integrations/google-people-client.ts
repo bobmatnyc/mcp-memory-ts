@@ -7,11 +7,7 @@
 
 import { google, people_v1 } from 'googleapis';
 import type { OAuth2Client } from 'google-auth-library';
-import type {
-  GoogleContactId,
-  SyncResult,
-  SyncError,
-} from '../types/google.js';
+import type { GoogleContactId, SyncResult, SyncError } from '../types/google.js';
 import { CONTACT_FIELD_MASK, createGoogleContactId } from '../types/google.js';
 
 export { CONTACT_FIELD_MASK };

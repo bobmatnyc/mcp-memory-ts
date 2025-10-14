@@ -90,10 +90,11 @@ export class GmailClient {
         startDate: weekStart,
         endDate: weekEnd,
       };
-
     } catch (error) {
       console.error('Failed to fetch emails:', error);
-      throw new Error(`Gmail API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Gmail API error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -127,7 +128,6 @@ export class GmailClient {
         labels: message.labelIds || [],
         headers,
       };
-
     } catch (error) {
       console.error(`Failed to get email ${messageId}:`, error);
       return null;

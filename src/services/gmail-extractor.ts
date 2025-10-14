@@ -89,7 +89,9 @@ export class GmailExtractor {
     // Process in batches to avoid token limits
     for (let i = 0; i < emails.length; i += batchSize) {
       const batch = emails.slice(i, i + batchSize);
-      console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(emails.length / batchSize)}...`);
+      console.log(
+        `Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(emails.length / batchSize)}...`
+      );
 
       try {
         const result = await this.extractFromBatch(batch);
@@ -140,7 +142,8 @@ export class GmailExtractor {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert at analyzing email content and extracting structured information about facts, insights, people, organizations, and projects. Return only valid JSON.',
+            content:
+              'You are an expert at analyzing email content and extracting structured information about facts, insights, people, organizations, and projects. Return only valid JSON.',
           },
           {
             role: 'user',
@@ -176,7 +179,6 @@ export class GmailExtractor {
       }));
 
       return { memories, entities };
-
     } catch (error) {
       console.error('GPT-4 extraction failed:', error);
       throw error;
@@ -280,9 +282,7 @@ Focus on quality over quantity. Only extract truly meaningful information.`;
 
         // Merge notes
         if (entity.notes && !existing.notes?.includes(entity.notes)) {
-          existing.notes = existing.notes
-            ? `${existing.notes}\n${entity.notes}`
-            : entity.notes;
+          existing.notes = existing.notes ? `${existing.notes}\n${entity.notes}` : entity.notes;
         }
       }
     }
