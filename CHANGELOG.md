@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.7.2
+
+### Patch Changes
+
+- Fix critical MCP stdio protocol violation causing Claude Desktop connection failures
+
+  **Critical Bug Fix:**
+  - Fix stdout pollution breaking JSON-RPC communication with Claude Desktop
+  - Change console.log() to console.error() in EmbeddingUpdater service
+  - Change console.log() to console.error() in desktop-mcp-server startup
+  - Resolves error: "Unexpected token 'E', '[EmbeddingU'... is not valid JSON"
+
+  **Prevention Measures:**
+  - Add comprehensive unit tests (9 tests) to prevent stdout pollution regression
+  - Add documentation explaining MCP stdio protocol requirements
+  - Add automated verification script for CI/CD integration
+
+  **Impact:**
+  MCP server now properly complies with stdio protocol, ensuring reliable communication with Claude Desktop. All logging is correctly isolated to stderr, with stdout reserved exclusively for JSON-RPC messages.
+
 ## 1.7.1
 
 ### Patch Changes
