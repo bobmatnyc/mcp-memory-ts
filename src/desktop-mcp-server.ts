@@ -9,7 +9,7 @@ import { resolve } from 'path';
 import { existsSync } from 'fs';
 import { stdin, stdout } from 'process';
 import { createInterface } from 'readline';
-import { initDatabaseFromEnv } from './database/index.js';
+import { initDatabaseFromEnv, DatabaseOperations } from './database/index.js';
 import { MemoryCore } from './core/index.js';
 import { MemoryType, ImportanceLevel, MCPToolResultStatus } from './types/enums.js';
 import { UsageTrackingDB } from './database/usage-tracking.js';
@@ -50,6 +50,7 @@ class SimpleMCPServer {
   private requestCounter = 0;
   private memoryCore: MemoryCore | null = null;
   private db: any = null;
+  private defaultUserId: string | null = null;
 
   constructor() {
     this.debugEnabled = process.env.MCP_DEBUG === '1';
@@ -81,11 +82,12 @@ class SimpleMCPServer {
   }
 
   private getUserId(): string {
-    // Get the default user ID from environment or use a fallback
-    const defaultEmail = process.env.DEFAULT_USER_EMAIL || process.env.MCP_DEFAULT_USER_EMAIL;
-    // For now, use a simple hash of the email as user ID
-    // In production, this should fetch from the database
-    return defaultEmail || 'default-user';
+    // Return the cached user UUID, not the email address
+    // This is properly initialized in start() by looking up the user from the database
+    if (!this.defaultUserId) {
+      throw new Error('User ID not initialized - call start() first');
+    }
+    return this.defaultUserId;
   }
 
   async start(): Promise<void> {
@@ -97,6 +99,19 @@ class SimpleMCPServer {
       this.memoryCore = new MemoryCore(this.db, process.env.OPENAI_API_KEY);
       await this.memoryCore.initialize();
       this.logDebug('Memory core initialized successfully');
+
+      // Cache the default user ID (UUID, not email)
+      const defaultEmail = process.env.DEFAULT_USER_EMAIL || process.env.MCP_DEFAULT_USER_EMAIL;
+      if (defaultEmail) {
+        const dbOps = new DatabaseOperations(this.db);
+        const user = await dbOps.getUserByEmail(defaultEmail);
+        if (user) {
+          this.defaultUserId = user.id;
+          this.logDebug(`Cached user ID for ${defaultEmail}: ${this.defaultUserId}`);
+        } else {
+          this.logError(`User not found for email: ${defaultEmail}`);
+        }
+      }
     } catch (error) {
       this.logError('Failed to initialize memory core:', error);
       throw error;

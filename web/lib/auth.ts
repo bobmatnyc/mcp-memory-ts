@@ -3,7 +3,7 @@ import { getUserCredentials } from './user-metadata';
 import { Database } from './database';
 
 export async function getUserEmail(): Promise<string> {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     throw new Error('Unauthorized - please sign in');
@@ -25,7 +25,7 @@ export async function getUserEmail(): Promise<string> {
  * @returns Database instance
  */
 export async function getDatabase(): Promise<Database> {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     throw new Error('Unauthorized - please sign in');
@@ -56,7 +56,9 @@ export async function getDatabase(): Promise<Database> {
     const name = user.firstName && user.lastName
       ? `${user.firstName} ${user.lastName}`
       : user.firstName || email.split('@')[0];
-    await database.ensureUser(email, name);
+
+    // Pass Clerk userId as the third parameter
+    await database.ensureUser(email, name, userId);
   } catch (error) {
     console.error('Failed to ensure user exists:', error);
   }

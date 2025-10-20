@@ -109,15 +109,22 @@ export class DatabaseOperations {
     // Use compatibility layer to map entity fields
     const mappedEntity = SchemaCompatibility.mapEntityForDatabase(entity);
 
-    // Let database auto-generate ID (entities table uses INTEGER PRIMARY KEY AUTOINCREMENT)
+    // Generate UUID for entity (entities table uses TEXT PRIMARY KEY with UUIDs)
+    const { v4: uuidv4 } = await import('uuid');
+    const entityId = uuidv4();
+
     const sql = `
-      INSERT INTO entities (user_id, name, entity_type, person_type, description,
-                           company, title, email, phone, address, notes, tags, metadata,
+      INSERT INTO entities (id, user_id, name, entity_type, person_type, description,
+                           company, title, contact_info, email, phone, address,
+                           notes, tags, metadata,
+                           importance, website, social_media, relationships,
+                           last_interaction, interaction_count,
                            created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const result = await this.db.execute(sql, [
+    await this.db.execute(sql, [
+      entityId,
       mappedEntity.user_id || mappedEntity.userId || null,
       mappedEntity.name,
       mappedEntity.entity_type || mappedEntity.entityType,
@@ -125,9 +132,10 @@ export class DatabaseOperations {
       mappedEntity.description || null,
       mappedEntity.company || null,
       mappedEntity.title || null,
-      mappedEntity.email || null,
-      mappedEntity.phone || null,
-      mappedEntity.address || null,
+      mappedEntity.contact_info || null,
+      entity.email || null,
+      entity.phone || null,
+      entity.address || null,
       mappedEntity.notes || null,
       typeof mappedEntity.tags === 'string'
         ? mappedEntity.tags
@@ -135,16 +143,25 @@ export class DatabaseOperations {
       typeof mappedEntity.metadata === 'string'
         ? mappedEntity.metadata
         : stringifyMetadata(mappedEntity.metadata),
+      mappedEntity.importance ?? entity.importance ?? 2,
+      mappedEntity.website || entity.website || null,
+      typeof mappedEntity.social_media === 'string'
+        ? mappedEntity.social_media
+        : mappedEntity.socialMedia || entity.socialMedia
+        ? JSON.stringify(mappedEntity.socialMedia || entity.socialMedia)
+        : null,
+      typeof mappedEntity.relationships === 'string'
+        ? mappedEntity.relationships
+        : mappedEntity.relationships || entity.relationships
+        ? JSON.stringify(mappedEntity.relationships || entity.relationships)
+        : null,
+      mappedEntity.last_interaction || mappedEntity.lastInteraction || entity.lastInteraction || null,
+      mappedEntity.interaction_count ?? mappedEntity.interactionCount ?? entity.interactionCount ?? 0,
       mappedEntity.created_at || mappedEntity.createdAt || new Date().toISOString(),
       mappedEntity.updated_at || mappedEntity.updatedAt || new Date().toISOString(),
     ]);
 
-    // Validate that database returned a valid ID
-    if (!result.lastInsertRowid) {
-      throw new Error('Failed to create entity: database did not return an ID');
-    }
-
-    return { ...entity, id: String(result.lastInsertRowid) }; // ✅ Convert to string
+    return { ...entity, id: entityId };
   }
 
   async getEntityById(id: number | string, userId: string): Promise<Entity | null> {
@@ -377,5 +394,20 @@ export class DatabaseOperations {
   private mapRowToMemory(row: any): Memory {
     // Use compatibility layer for proper field mapping
     return SchemaCompatibility.mapMemoryFromDatabase(row);
+  }
+
+  /**
+   * Delete stale (non-completed) Gmail extraction logs to allow retries
+   * Returns the number of records deleted
+   */
+  async deleteStaleExtractionLogs(userId: string, weekIdentifier: string): Promise<number> {
+    const result = await this.db.execute(
+      `DELETE FROM gmail_extraction_log
+       WHERE user_id = ?
+       AND week_identifier = ?
+       AND status != 'completed'`,
+      [userId, weekIdentifier]
+    );
+    return (result as any).changes || 0;
   }
 }

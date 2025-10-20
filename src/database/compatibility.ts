@@ -185,13 +185,19 @@ export class SchemaCompatibility {
       mapped.person_type = entity.personType;
     }
 
-    // Handle contact information
+    // Handle contact information - store in BOTH contact_info JSON AND individual columns
     if (entity.email || entity.phone || entity.address) {
+      // Store in contact_info JSON (for backward compatibility)
       mapped.contact_info = JSON.stringify({
         email: entity.email,
         phone: entity.phone,
         address: entity.address,
       });
+
+      // Also store in individual legacy columns (for direct SQL queries)
+      mapped.email = entity.email || null;
+      mapped.phone = entity.phone || null;
+      mapped.address = entity.address || null;
     }
 
     // Convert arrays/objects to JSON strings
@@ -241,8 +247,15 @@ export class SchemaCompatibility {
       updatedAt: row.updated_at || row.updatedAt,
     };
 
-    // Parse contact info (contains email, phone, address)
-    if (row.contact_info) {
+    // Handle contact info - prefer individual columns over JSON field
+    // This ensures compatibility with direct SQL queries on email/phone/address
+    if (row.email !== undefined || row.phone !== undefined || row.address !== undefined) {
+      // Use individual columns if they exist (new schema)
+      entity.email = row.email || null;
+      entity.phone = row.phone || null;
+      entity.address = row.address || null;
+    } else if (row.contact_info) {
+      // Fall back to contact_info JSON (legacy schema)
       try {
         const contact =
           typeof row.contact_info === 'string' ? JSON.parse(row.contact_info) : row.contact_info;
