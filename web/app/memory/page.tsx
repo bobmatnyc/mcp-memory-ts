@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 import { MemoryList } from '@/components/memories/memory-list';
 import { MemorySearch } from '@/components/memories/memory-search';
 import { CreateMemoryDialog } from '@/components/memories/create-memory-dialog';
@@ -8,9 +11,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, LayoutGrid, List, AlertCircle, Settings } from 'lucide-react';
+import { Plus, LayoutGrid, List, AlertCircle, Settings, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+
+// Import Entity type from parent types
+type Entity = {
+  id?: string;
+  name: string;
+  entityType: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+};
 
 type ViewMode = 'grid' | 'list';
 type FilterType = 'all' | 'SYSTEM' | 'LEARNED' | 'MEMORY';
@@ -18,7 +30,9 @@ type FilterImportance = 'all' | '1' | '2' | '3' | '4';
 
 export default function MemoryPage() {
   const [memories, setMemories] = useState([]);
+  const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingEntities, setLoadingEntities] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -27,19 +41,30 @@ export default function MemoryPage() {
   const [filterImportance, setFilterImportance] = useState<FilterImportance>('all');
   const { toast } = useToast();
 
+  // Read URL query parameters
+  const searchParams = useSearchParams();
+  const sourceFilter = searchParams.get('source'); // 'gmail'
+  const weekFilter = searchParams.get('week'); // '2025-42'
+
   const fetchMemories = async (query?: string) => {
     setLoading(true);
     setError(null);
     try {
+      // Build query params with filters
+      const params = new URLSearchParams();
+      params.append('limit', '50');
+      if (sourceFilter) params.append('source', sourceFilter);
+      if (weekFilter) params.append('week', weekFilter);
+
       const url = query
         ? `/api/memories/search`
-        : `/api/memories?limit=50`;
+        : `/api/memories?${params.toString()}`;
 
       const response = query
         ? await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query, limit: 50 }),
+            body: JSON.stringify({ query, limit: 50, source: sourceFilter, week: weekFilter }),
           })
         : await fetch(url);
 
@@ -61,9 +86,33 @@ export default function MemoryPage() {
     }
   };
 
+  const fetchEntities = async () => {
+    try {
+      setLoadingEntities(true);
+
+      // Build query params with filters
+      const params = new URLSearchParams();
+      params.append('limit', '100');
+      if (sourceFilter) params.append('source', sourceFilter);
+      if (weekFilter) params.append('week', weekFilter);
+
+      const response = await fetch(`/api/entities?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch entities');
+
+      const data = await response.json();
+      setEntities(data.data || []);
+    } catch (error) {
+      console.error('Error fetching entities:', error);
+      setEntities([]);
+    } finally {
+      setLoadingEntities(false);
+    }
+  };
+
   useEffect(() => {
     fetchMemories();
-  }, []);
+    fetchEntities();
+  }, [sourceFilter, weekFilter]); // Refetch when filters change
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -172,6 +221,25 @@ export default function MemoryPage() {
           <MemorySearch onSearch={handleSearch} />
         </div>
 
+        {/* Filter Banner */}
+        {(sourceFilter || weekFilter) && (
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between">
+              <div className="text-sm">
+                <span className="font-medium">Filtered by:</span>
+                {sourceFilter && <span className="ml-2">Source: {sourceFilter}</span>}
+                {weekFilter && <span className="ml-2">Week: {weekFilter}</span>}
+              </div>
+              <Link
+                href="/memory"
+                className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+              >
+                Clear filters
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Filters and View Controls */}
         <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3 flex-1">
@@ -229,6 +297,55 @@ export default function MemoryPage() {
           onMemoryDeleted={handleMemoryDeleted}
           viewMode={viewMode}
         />
+
+        {/* Entities Section */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-900">
+            Entities
+            {!loadingEntities && (
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                ({entities.length})
+              </span>
+            )}
+          </h2>
+
+          {loadingEntities ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            </div>
+          ) : entities.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {entities.map((entity) => (
+                <Card key={entity.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-medium text-lg text-gray-900">{entity.name}</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        {entity.entityType}
+                      </Badge>
+                    </div>
+                    {entity.description && (
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                        {entity.description}
+                      </p>
+                    )}
+                    {entity.metadata && 'week_identifier' in entity.metadata && entity.metadata.week_identifier ? (
+                      <div className="text-xs text-gray-500 mt-2">
+                        Week: {String(entity.metadata.week_identifier)}
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="py-8 text-center">
+                <p className="text-gray-500">No entities found</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         <CreateMemoryDialog
           open={createDialogOpen}

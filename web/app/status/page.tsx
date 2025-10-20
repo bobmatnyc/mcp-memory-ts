@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 async function getStats() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004'}/api/stats`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/stats`, {
       cache: 'no-store',
     });
     if (response.ok) {
@@ -31,7 +31,7 @@ async function getStats() {
 
 async function getRecentMemories() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004'}/api/memories?limit=10`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/api/memories?limit=10`, {
       cache: 'no-store',
     });
     if (response.ok) {
@@ -54,13 +54,16 @@ const IMPORTANCE_LABELS: Record<number, { label: string; color: string }> = {
 };
 
 export default async function StatusPage() {
-  const { userId } = auth();
+  const { userId } = await auth();
 
-  // Status page is public for health checks
-  // If not authenticated, only show basic status without user-specific data
+  // Require authentication for status page
+  if (!userId) {
+    redirect('/sign-in');
+  }
+
   const [statsResult, memoriesResult] = await Promise.all([
     getStats(),
-    userId ? getRecentMemories() : Promise.resolve({ success: false, data: [] })
+    getRecentMemories()
   ]);
 
   // If there's an error fetching stats, show error page

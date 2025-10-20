@@ -4,29 +4,45 @@ import { getUserCredentials } from '@/lib/user-metadata';
 
 export async function GET() {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // If user is authenticated, check their personal API key
+    if (userId) {
+      const metadata = await getUserCredentials(userId);
+
+      if (!metadata?.openaiApiKey) {
+        return NextResponse.json({ error: 'OpenAI API key not configured for user' }, { status: 400 });
+      }
+
+      // Simple check - try to validate the API key format
+      const isValidFormat = metadata.openaiApiKey.startsWith('sk-');
+
+      if (!isValidFormat) {
+        return NextResponse.json({ error: 'Invalid OpenAI API key format' }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        status: 'ok',
+        message: 'OpenAI API key is configured for user'
+      });
     }
 
-    const metadata = await getUserCredentials(userId);
+    // If not authenticated, check environment variable (for public health status)
+    const envApiKey = process.env.OPENAI_API_KEY;
 
-    if (!metadata?.openaiApiKey) {
-      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 400 });
+    if (!envApiKey) {
+      return NextResponse.json({ error: 'OpenAI API key not configured in environment' }, { status: 400 });
     }
 
-    // Simple check - try to validate the API key format
-    // We don't actually make an API call to avoid unnecessary costs
-    const isValidFormat = metadata.openaiApiKey.startsWith('sk-');
+    const isValidFormat = envApiKey.startsWith('sk-');
 
     if (!isValidFormat) {
-      return NextResponse.json({ error: 'Invalid OpenAI API key format' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid OpenAI API key format in environment' }, { status: 400 });
     }
 
     return NextResponse.json({
       status: 'ok',
-      message: 'OpenAI API key is configured'
+      message: 'OpenAI API key is configured in environment'
     });
   } catch (error: any) {
     console.error('OpenAI health check error:', error);

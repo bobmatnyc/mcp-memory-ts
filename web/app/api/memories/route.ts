@@ -44,10 +44,21 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '20');
     const query = searchParams.get('query') || '';
+    const source = searchParams.get('source');
+    const week = searchParams.get('week');
 
     const database = await getDatabase();
 
-    const memories = await database.getMemories(userEmail, { limit, query });
+    let memories = await database.getMemories(userEmail, { limit, query });
+
+    // Filter by metadata if parameters provided
+    if (source || week) {
+      memories = memories.filter((m: any) => {
+        if (source && m.metadata?.source !== source) return false;
+        if (week && m.metadata?.week_identifier !== week) return false;
+        return true;
+      });
+    }
 
     return NextResponse.json({
       success: true,

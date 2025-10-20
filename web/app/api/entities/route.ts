@@ -7,9 +7,20 @@ export async function GET(request: NextRequest) {
     const userEmail = await getUserEmail();
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '50');
+    const source = searchParams.get('source');
+    const week = searchParams.get('week');
 
     const database = await getDatabase();
-    const entities = await database.getEntities(userEmail, { limit });
+    let entities = await database.getEntities(userEmail, { limit });
+
+    // Filter by metadata if parameters provided
+    if (source || week) {
+      entities = entities.filter((e: any) => {
+        if (source && e.metadata?.source !== source) return false;
+        if (week && e.metadata?.week_identifier !== week) return false;
+        return true;
+      });
+    }
 
     return NextResponse.json({
       success: true,

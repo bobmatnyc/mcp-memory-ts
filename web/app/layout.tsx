@@ -12,6 +12,14 @@ export const metadata: Metadata = {
   description: 'Cloud-based vector memory service for AI assistants',
 };
 
+// Validate Clerk configuration
+if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+  console.error('[Layout] Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY - authentication will not work');
+}
+if (!process.env.CLERK_SECRET_KEY) {
+  console.error('[Layout] Missing CLERK_SECRET_KEY - authentication will not work');
+}
+
 export default function RootLayout({
   children,
 }: {

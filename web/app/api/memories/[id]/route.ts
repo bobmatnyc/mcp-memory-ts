@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserEmail, getDatabase } from '@/lib/auth';
 
 // GET /api/memories/:id - Get memory by ID
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const userEmail = await getUserEmail();
     const database = await getDatabase();
+    const params = await props.params;
 
     const memory = await database.getMemory(userEmail, params.id);
 
@@ -27,10 +28,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT /api/memories/:id - Update memory
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const userEmail = await getUserEmail();
     const body = await request.json();
+    const params = await props.params;
 
     const database = await getDatabase();
     await database.updateMemory(userEmail, params.id, body);
@@ -46,10 +48,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/memories/:id - Delete memory
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const userEmail = await getUserEmail();
     const database = await getDatabase();
+    const params = await props.params;
 
     await database.deleteMemory(userEmail, params.id);
 

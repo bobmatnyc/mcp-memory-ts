@@ -1,9 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectSeparator,
+} from '@/components/ui/select';
 import { Mail, FolderOpen, Clock, Lock, CheckCircle2, AlertCircle, Loader2, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,12 +36,63 @@ export function MemoryExtractor() {
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [gmailEmail, setGmailEmail] = useState<string | null>(null);
+  const [selectedWeek, setSelectedWeek] = useState<string | null>(() => {
+    // Will be set properly after logs load
+    return null;
+  });
   const { toast } = useToast();
 
-  // Load extraction logs on mount
+  // Check Gmail connection status from database
+  const checkGmailConnection = async () => {
+    try {
+      // Check if user has Google OAuth connection with Gmail scope
+      const response = await fetch('/api/google/status');
+      if (!response.ok) {
+        console.log('Google status check failed:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Google status response:', data);
+
+      if (data.connected && data.email && data.scopes) {
+        // Check if scopes include gmail.readonly
+        const hasGmailScope = data.scopes.some((scope: string) =>
+          scope.includes('gmail.readonly') ||
+          scope.includes('gmail.modify') ||
+          scope.includes('gmail')
+        );
+
+        if (hasGmailScope) {
+          setGmailConnected(true);
+          setGmailEmail(data.email);
+          console.log('Gmail scope detected for:', data.email);
+        } else {
+          console.log('Google connected but no Gmail scope. Available scopes:', data.scopes);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check Gmail connection:', error);
+    }
+  };
+
+  // Load extraction logs and check connection on mount
   useEffect(() => {
+    checkGmailConnection();
     loadExtractionLogs();
   }, []);
+
+  // Set default to most recent unextracted week
+  useEffect(() => {
+    if (extractionLogs.length === 0 || selectedWeek !== null) return;
+
+    const pastWeeks = generatePastWeeks();
+    const firstUnextracted = pastWeeks.find(week => !week.isProcessed);
+
+    if (firstUnextracted) {
+      setSelectedWeek(firstUnextracted.value);
+    }
+  }, [extractionLogs, selectedWeek]);
 
   const loadExtractionLogs = async () => {
     try {
@@ -49,82 +109,48 @@ export function MemoryExtractor() {
     }
   };
 
-  const handleGmailConnect = async () => {
-    try {
-      // Initiate Google OAuth flow
-      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-      const redirectUri = `${window.location.origin}/api/auth/google/callback`;
-      const scope = 'https://www.googleapis.com/auth/gmail.readonly';
+  const generatePastWeeks = () => {
+    const weeks: Array<{ value: string; label: string; isProcessed: boolean }> = [];
+    const today = new Date();
 
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${clientId}&` +
-        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-        `response_type=token&` +
-        `scope=${encodeURIComponent(scope)}`;
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - (i * 7));
 
-      // Open OAuth popup
-      const width = 500;
-      const height = 600;
-      const left = (window.screen.width / 2) - (width / 2);
-      const top = (window.screen.height / 2) - (height / 2);
+      // Calculate week identifier (ISO week format: YYYY-WW)
+      const year = date.getFullYear();
+      const startOfYear = new Date(year, 0, 1);
+      const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+      const weekNum = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
+      const weekId = `${year}-${weekNum.toString().padStart(2, '0')}`;
 
-      const popup = window.open(
-        authUrl,
-        'Google OAuth',
-        `width=${width},height=${height},left=${left},top=${top}`
+      // Check if this week has been processed
+      const isProcessed = extractionLogs.some(
+        log => log.week_identifier === weekId && log.status === 'completed'
       );
 
-      // Listen for OAuth callback
-      const handleMessage = async (event: MessageEvent) => {
-        if (event.data.type === 'gmail-auth-success') {
-          const accessToken = event.data.accessToken;
-
-          // Test connection
-          const testResponse = await fetch('/api/gmail/test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gmailAccessToken: accessToken }),
-          });
-
-          const testResult = await testResponse.json();
-
-          if (testResult.results?.gmail?.success) {
-            setGmailConnected(true);
-            setGmailEmail(testResult.results.gmail.email);
-            localStorage.setItem('gmail_access_token', accessToken);
-
-            toast({
-              title: 'Gmail Connected',
-              description: `Connected to ${testResult.results.gmail.email}`,
-            });
-          } else {
-            throw new Error(testResult.results?.gmail?.error || 'Connection failed');
-          }
-
-          window.removeEventListener('message', handleMessage);
-          popup?.close();
-        }
-      };
-
-      window.addEventListener('message', handleMessage);
-
-    } catch (error) {
-      console.error('Gmail connection error:', error);
-      toast({
-        title: 'Connection Failed',
-        description: error instanceof Error ? error.message : 'Failed to connect to Gmail',
-        variant: 'destructive',
+      weeks.push({
+        value: weekId,
+        label: `Week ${weekId} (${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`,
+        isProcessed,
       });
     }
+
+    return weeks;
   };
 
-  const handleExtractCurrentWeek = async () => {
+  const handleGmailConnect = async () => {
+    // Use server-side OAuth flow
+    window.location.href = '/api/auth/google-connect';
+  };
+
+  const handleExtractWeek = async (weekIdentifier?: string | null) => {
     try {
       setIsExtracting(true);
 
-      const accessToken = localStorage.getItem('gmail_access_token');
-      if (!accessToken) {
-        throw new Error('Please connect Gmail first');
+      // No localStorage check needed - server retrieves tokens from database!
+      if (!gmailConnected) {
+        throw new Error('Please connect Gmail first in Settings');
       }
 
       toast({
@@ -136,8 +162,7 @@ export function MemoryExtractor() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          gmailAccessToken: accessToken,
-          // OpenAI key will be used from server env
+          weekIdentifier: weekIdentifier || undefined, // Use selected week or default to current
         }),
       });
 
@@ -160,8 +185,11 @@ export function MemoryExtractor() {
         });
       }
 
-      // Reload logs
+      // Reload logs to show updated status
       await loadExtractionLogs();
+
+      // Reset selected week after successful extraction
+      setSelectedWeek(null);
 
     } catch (error) {
       console.error('Extraction error:', error);
@@ -241,20 +269,65 @@ export function MemoryExtractor() {
                   Connect Gmail
                 </Button>
               ) : (
-                <Button
-                  className="w-full"
-                  onClick={handleExtractCurrentWeek}
-                  disabled={isExtracting}
-                >
-                  {isExtracting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Extracting...
-                    </>
-                  ) : (
-                    'Extract This Week'
-                  )}
-                </Button>
+                <>
+                  <div className="space-y-3">
+                    {/* Week Selector */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Select Week to Extract
+                      </label>
+                      <Select
+                        value={selectedWeek || 'current'}
+                        onValueChange={(value) => setSelectedWeek(value === 'current' ? null : value)}
+                        disabled={isExtracting}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue>
+                            {selectedWeek
+                              ? `Week ${selectedWeek}`
+                              : 'This Week (Current)'}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="current">This Week (Current)</SelectItem>
+                          <SelectSeparator />
+                          {generatePastWeeks().map(week => (
+                            <SelectItem
+                              key={week.value}
+                              value={week.value}
+                              disabled={week.isProcessed}
+                            >
+                              {week.label} {week.isProcessed && '✓ Extracted'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Extract Button */}
+                    <Button
+                      className="w-full"
+                      onClick={() => handleExtractWeek(selectedWeek)}
+                      disabled={isExtracting || !gmailConnected}
+                    >
+                      {isExtracting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Extracting...
+                        </>
+                      ) : (
+                        selectedWeek ? `Extract Week ${selectedWeek}` : 'Extract This Week'
+                      )}
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs"
+                    onClick={handleGmailConnect}
+                  >
+                    Reconnect Gmail
+                  </Button>
+                </>
               )}
             </div>
           </CardContent>
@@ -300,9 +373,9 @@ export function MemoryExtractor() {
       {gmailConnected && (
         <Card>
           <CardHeader>
-            <CardTitle>Extraction History</CardTitle>
+            <CardTitle>Recent Extractions</CardTitle>
             <CardDescription>
-              Recent Gmail extraction batches
+              5 most recent Gmail extractions
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -310,59 +383,47 @@ export function MemoryExtractor() {
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
               </div>
-            ) : extractionLogs.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No extractions yet. Click "Extract This Week" to get started.
+            ) : extractionLogs.filter(log => log.status === 'completed').slice(0, 5).length > 0 ? (
+              <div className="space-y-2">
+                {extractionLogs
+                  .filter(log => log.status === 'completed')
+                  .slice(0, 5)
+                  .map((log) => (
+                    <Link
+                      key={log.id}
+                      href={`/memory?source=gmail&week=${log.week_identifier}`}
+                      className="block p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-sm">
+                            Week {log.week_identifier}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            {log.emails_processed} emails → {log.memories_created} memories, {log.entities_created} entities
+                          </div>
+                        </div>
+                        <svg
+                          className="w-5 h-5 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </div>
+                    </Link>
+                  ))}
               </div>
             ) : (
-              <div className="space-y-3">
-                {extractionLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">Week {log.week_identifier}</span>
-                        {log.status === 'completed' && (
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Completed
-                          </Badge>
-                        )}
-                        {log.status === 'processing' && (
-                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            Processing
-                          </Badge>
-                        )}
-                        {log.status === 'failed' && (
-                          <Badge variant="secondary" className="bg-red-100 text-red-800">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Failed
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {formatDate(log.start_date)} - {formatDate(log.end_date)}
-                      </div>
-                      {log.status === 'completed' && (
-                        <div className="text-sm text-gray-500 mt-1">
-                          {log.emails_processed} emails → {log.memories_created} memories, {log.entities_created} entities
-                        </div>
-                      )}
-                      {log.error_message && (
-                        <div className="text-sm text-red-600 mt-1">
-                          Error: {log.error_message}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      {formatDate(log.created_at)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+                No extraction history yet. Extract a week to get started!
+              </p>
             )}
           </CardContent>
         </Card>

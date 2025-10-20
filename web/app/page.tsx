@@ -7,8 +7,8 @@ import { Brain, Database, Search, Users, Lock, Zap } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-export default function HomePage() {
-  const { userId } = auth();
+export default async function HomePage() {
+  const { userId } = await auth();
 
   // Redirect authenticated users to dashboard
   if (userId) {

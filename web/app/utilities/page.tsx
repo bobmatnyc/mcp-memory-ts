@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
+export const dynamic = 'force-dynamic';
 import { MemoryList } from '@/components/memories/memory-list';
 import { MemorySearch } from '@/components/memories/memory-search';
 import { CreateMemoryDialog } from '@/components/memories/create-memory-dialog';

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { getUserEmail, getDatabase } from '@/lib/auth';
 
 function getErrorMessage(error: any): string {
@@ -40,6 +41,21 @@ function getErrorMessage(error: any): string {
 // GET /api/stats - Get statistics for dashboard
 export async function GET(request: NextRequest) {
   try {
+    // Check if user is authenticated
+    const { userId } = await auth();
+
+    // Require authentication unconditionally
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Authentication required'
+        },
+        { status: 401 }
+      );
+    }
+
+    // Fetch actual stats for authenticated user
     const userEmail = await getUserEmail();
     const database = await getDatabase();
 

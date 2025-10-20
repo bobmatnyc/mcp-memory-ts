@@ -1,27 +1,24 @@
 import { ConnectionStatus } from '@/components/dashboard/connection-status';
 import { QuickStats } from '@/components/dashboard/quick-stats';
 import { NavCards } from '@/components/dashboard/nav-cards';
-import { GoogleConnectionStatus } from '@/components/dashboard/google-connection-status';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { Calendar, Users, RefreshCw } from 'lucide-react';
-import Link from 'next/link';
+import { getUserEmail, getDatabase } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 async function getStats() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004'}/api/stats`, {
-      cache: 'no-store',
-    });
-    if (response.ok) {
-      const data = await response.json();
-      return { success: true, data: data.data };
-    } else {
+    const database = await getDatabase();
+    const userEmail = await getUserEmail();
+
+    if (!database || !userEmail) {
       return { success: false, data: null };
     }
+
+    const stats = await database.getStatistics(userEmail);
+    return { success: true, data: stats };
   } catch (error: any) {
     console.error('Failed to fetch stats:', error);
     return { success: false, data: null };
@@ -30,10 +27,8 @@ async function getStats() {
 
 async function checkOpenAiConnection() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004'}/api/health/openai`, {
-      cache: 'no-store',
-    });
-    return response.ok;
+    const apiKey = process.env.OPENAI_API_KEY;
+    return !!apiKey;
   } catch (error) {
     console.error('Failed to check OpenAI connection:', error);
     return false;
@@ -41,13 +36,22 @@ async function checkOpenAiConnection() {
 }
 
 export default async function DashboardPage() {
-  const { userId, sessionClaims } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     redirect('/');
   }
 
-  const userEmail = sessionClaims?.email as string || 'Unknown User';
+  // Get full user object from Clerk
+  const user = await currentUser();
+
+  // Build display name with proper fallbacks
+  const displayName = user?.fullName
+    || user?.firstName
+    || user?.primaryEmailAddress?.emailAddress?.split('@')[0]
+    || 'User';
+
+  const userEmail = user?.primaryEmailAddress?.emailAddress || '';
 
   const [statsResult, openAiConnected] = await Promise.all([
     getStats(),
@@ -65,7 +69,7 @@ export default async function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900">Welcome Back</h1>
           <p className="mt-2 text-gray-600">
-            Hello, <span className="font-medium">{userEmail}</span>
+            Hello, <span className="font-medium">{displayName}</span>
           </p>
         </div>
 
@@ -99,19 +103,6 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         )}
-
-        {/* Google Integration Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Google Integration</h2>
-            <Link href="/settings#google">
-              <Button variant="outline" size="sm">
-                Manage
-              </Button>
-            </Link>
-          </div>
-          <GoogleConnectionStatus />
-        </div>
 
         {/* Navigation Cards */}
         <div className="mb-8">
