@@ -2,6 +2,10 @@
 
 A modern Next.js web application for managing your MCP Memory service with OAuth authentication, semantic search, and a beautiful UI.
 
+**Current Version**: 1.7.2
+**Last Updated**: 2025-10-14
+**Staging Port**: 3002 | **Production Port**: 3001
+
 ## Features
 
 ### Authentication & Security
@@ -330,8 +334,8 @@ TURSO_AUTH_TOKEN=your-auth-token
 OPENAI_API_KEY=your-openai-api-key
 
 # NextAuth
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-random-secret
+NEXTAUTH_URL=http://localhost:3002  # Port 3002 for staging, 3001 for production
+NEXTAUTH_SECRET=your-random-secret  # Generate with: openssl rand -base64 32
 
 # Google OAuth
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
@@ -344,7 +348,9 @@ GOOGLE_CLIENT_SECRET=your-client-secret
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open the web interface:
+- **Staging**: [http://localhost:3002](http://localhost:3002) (via ./START_WEB_SERVER.sh)
+- **Production**: [http://localhost:3001](http://localhost:3001) (via PM2)
 
 ## Development Workflow
 
