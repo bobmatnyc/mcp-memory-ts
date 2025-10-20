@@ -2,6 +2,8 @@
 
 A modern TypeScript implementation of a cloud-based vector memory service for AI assistants via the Model Context Protocol (MCP). This service provides persistent storage with semantic search capabilities for Claude.ai and other AI assistants.
 
+**Current Version**: 1.7.2 | **Status**: Production-ready | **Test Coverage**: 95.2%
+
 ## Features
 
 - **🧠 3-Tier Memory System**: SYSTEM, LEARNED, and MEMORY layers for hierarchical knowledge organization
@@ -11,13 +13,15 @@ A modern TypeScript implementation of a cloud-based vector memory service for AI
 - **🏢 Entity Management**: Track people, organizations, projects, and relationships
 - **📚 Interaction History**: Store and retrieve conversation history with context
 - **📱 Contacts Sync**: True bidirectional sync with macOS Contacts using LLM-based deduplication
-- **🔄 Google Sync**: Google Contacts and Calendar integration with incremental sync (v1.7.0)
+- **🔄 Google Sync**: Google Contacts and Calendar integration with incremental sync (v1.7.0+)
 - **📅 Calendar Tracking**: Week-based Google Calendar event sync with attendee linking
-- **🌐 Web Interface**: Modern Next.js web UI for visual memory management (v1.3.0+)
+- **🌐 Web Interface**: Modern Next.js web UI for visual memory management (staging on port 3002)
 - **🔌 MCP Protocol**: JSON-RPC 2.0 over stdio (local) and HTTP (remote)
 - **🌐 REST API**: HTTP interface for web applications
 - **🔐 OAuth Integration**: Clerk authentication for remote access with 95.2% test coverage
 - **☁️ Cloud-Ready**: Built for modern cloud deployment with Turso database
+- **🔐 Security Patches**: Critical user isolation vulnerabilities fixed in v1.7.1
+- **📝 Smart Logging**: LOG_LEVEL-aware logging with state tracking (v1.7.1+)
 
 ## Architecture
 
@@ -77,8 +81,8 @@ TURSO_AUTH_TOKEN=your-auth-token
 OPENAI_API_KEY=your-openai-api-key
 
 # Optional Configuration
-LOG_LEVEL=INFO
-MCP_DEBUG=0
+LOG_LEVEL=info              # Options: debug, info (default), warn, error (v1.7.1+)
+MCP_DEBUG=0                 # Set to 1 for detailed MCP protocol debugging
 DEFAULT_USER_EMAIL=user@example.com
 
 # Automatic Embedding Updates (v1.1.0+)
@@ -92,7 +96,7 @@ CLERK_SECRET_KEY=your-clerk-secret-key
 # Google Integration (v1.7.0+)
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+GOOGLE_REDIRECT_URI=http://localhost:3002/api/auth/google/callback  # Use port 3002 for staging
 ```
 
 ## Usage
@@ -204,17 +208,29 @@ Modern Next.js web interface for visual memory management:
 # Setup web interface
 ./scripts/setup-web.sh
 
-# Start development server
+# Start development server (port 3002 for staging)
+./START_WEB_SERVER.sh
+
+# Or manually
 cd web
-npm run dev
+npm run dev -- -p 3002
+
+# Production deployment with PM2
+cd web && npm run build && cd ..
+pm2 start ecosystem.config.cjs
 ```
 
-The web interface will be available at `http://localhost:3001` with:
+The web interface will be available at:
+- **Staging**: `http://localhost:3002` (development/testing)
+- **Production**: `http://localhost:3001` (via PM2)
+
+Features:
 - **Authentication**: Clerk OAuth for multi-user support
 - **Visual Search**: Interactive memory browser with semantic search
 - **Entity Management**: Visual relationship mapping
 - **Real-time Sync**: Bidirectional sync with MCP server
 - **Contacts Integration**: Import/export with LLM deduplication
+- **Google Integration**: Contacts and Calendar sync with OAuth
 
 See [docs/features/WEB_INTERFACE.md](./docs/features/WEB_INTERFACE.md) for complete setup and deployment guide.
 

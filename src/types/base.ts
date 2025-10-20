@@ -33,6 +33,14 @@ export interface User extends BaseEntity {
   metadata?: Record<string, unknown>;
 }
 
+// Contact information structure stored in JSON field
+export interface ContactInfo {
+  email?: string;
+  phone?: string;
+  address?: string;
+  company?: string;
+}
+
 // Entity interface
 export interface Entity extends BaseEntity {
   id?: string; // Normalized to string at database boundary
@@ -43,9 +51,12 @@ export interface Entity extends BaseEntity {
   description?: string;
   company?: string;
   title?: string;
+  // Legacy fields (mapped to/from contact_info via compatibility layer)
   email?: string;
   phone?: string;
   address?: string;
+  // Actual database field (JSON)
+  contactInfo?: ContactInfo;
   website?: string;
   socialMedia?: string;
   notes?: string;
@@ -158,4 +169,21 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   message?: string;
+}
+
+// Gmail-specific metadata interfaces
+export interface GmailMemoryMetadata extends Record<string, unknown> {
+  source: 'gmail';
+  week_identifier?: string; // YYYY-WW format
+  email_id?: string;
+  email_date?: string;
+  email_from?: string;
+  email_subject?: string;
+}
+
+export interface GmailEntityMetadata extends Record<string, unknown> {
+  source: 'gmail';
+  week_identifier?: string; // YYYY-WW format
+  first_mentioned?: string;
+  email_id?: string;
 }

@@ -2,6 +2,8 @@
 
 Complete guide for deploying the MCP Memory Service with Clerk OAuth authentication to both development and production environments.
 
+**Current Version**: 1.7.2 | **Last Updated**: 2025-10-14
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -125,12 +127,26 @@ ALLOW_DEV_AUTH=false
    npm run build
    ```
 
-3. **Start the remote MCP server:**
+3. **Start the remote MCP server (optional for HTTP MCP):**
    ```bash
    npm run mcp-server-remote
    ```
 
    The server will start on `http://localhost:3003`
+
+4. **Start the web interface (staging on port 3002):**
+   ```bash
+   ./START_WEB_SERVER.sh
+   ```
+
+   The web interface will start on `http://localhost:3002`
+
+5. **Deploy with PM2 for production (port 3001):**
+   ```bash
+   cd web && npm run build && cd ..
+   pm2 start ecosystem.config.cjs
+   pm2 list
+   ```
 
 ### Testing Locally
 
@@ -460,5 +476,62 @@ For issues and questions:
 
 ---
 
-**Last Updated:** 2025-10-01
-**Version:** 1.1.2
+## Web Interface Deployment
+
+### Staging Environment (Port 3002)
+
+For development and testing:
+
+```bash
+# Quick start with dedicated script
+./START_WEB_SERVER.sh
+
+# Or manually
+cd web
+npm run dev -- -p 3002
+```
+
+Access at: `http://localhost:3002`
+
+### Production Environment (Port 3001)
+
+Using PM2 process manager:
+
+```bash
+# 1. Build the web application
+cd web
+npm run build
+cd ..
+
+# 2. Deploy with PM2
+pm2 start ecosystem.config.cjs
+
+# 3. Monitor
+pm2 list
+pm2 logs mcp-memory-web
+
+# 4. Manage
+pm2 restart mcp-memory-web
+pm2 stop mcp-memory-web
+pm2 delete mcp-memory-web
+
+# 5. Save PM2 configuration
+pm2 save
+pm2 startup  # For auto-start on system boot
+```
+
+Access at: `http://localhost:3001`
+
+### Port Configuration Summary
+
+| Environment | Port | Method | URL |
+|-------------|------|--------|-----|
+| **Staging** | 3002 | ./START_WEB_SERVER.sh or npm run dev | http://localhost:3002 |
+| **Production** | 3001 | PM2 (ecosystem.config.cjs) | http://localhost:3001 |
+| **Remote MCP** | 3003 | npm run mcp-server-remote | http://localhost:3003 |
+| **Claude Desktop** | N/A | stdio (npm run mcp-server) | N/A (local stdio) |
+
+---
+
+**Last Updated:** 2025-10-14
+**Version:** 1.7.2

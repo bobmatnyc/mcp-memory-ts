@@ -4,7 +4,7 @@
 
 import type { DatabaseConnection } from './connection.js';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * SQL statements for creating tables
@@ -36,6 +36,7 @@ export const CREATE_TABLES = {
       description TEXT,
       company TEXT,
       title TEXT,
+      contact_info TEXT,
       email TEXT,
       phone TEXT,
       address TEXT,

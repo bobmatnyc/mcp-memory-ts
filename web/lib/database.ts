@@ -23,7 +23,7 @@ export class Database {
   /**
    * Ensure user exists in database
    */
-  async ensureUser(email: string, name?: string): Promise<string> {
+  async ensureUser(email: string, name?: string, clerkUserId?: string): Promise<string> {
     // Check if user exists
     const existingUser = await this.client.execute({
       sql: 'SELECT id FROM users WHERE email = ?',
@@ -34,11 +34,13 @@ export class Database {
       return existingUser.rows[0].id as string;
     }
 
-    // Create new user
+    // Create new user with Clerk ID if provided, otherwise use UUID
+    const userId = clerkUserId || crypto.randomUUID();
+
     const result = await this.client.execute({
       sql: 'INSERT INTO users (id, email, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
       args: [
-        crypto.randomUUID(),
+        userId,  // Use Clerk ID instead of always generating UUID
         email,
         name || email.split('@')[0],
         new Date().toISOString(),
@@ -46,13 +48,7 @@ export class Database {
       ],
     });
 
-    // Get the user ID we just created
-    const newUser = await this.client.execute({
-      sql: 'SELECT id FROM users WHERE email = ?',
-      args: [email],
-    });
-
-    return newUser.rows[0].id as string;
+    return userId;
   }
 
   /**

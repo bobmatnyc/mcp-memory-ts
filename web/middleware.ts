@@ -2,15 +2,20 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { hasRequiredCredentials } from './lib/user-metadata';
 import { NextResponse } from 'next/server';
 
-const isPublicRoute = createRouteMatcher(['/']);
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/api/health',
+  '/api/health/openai',
+  // '/api/stats' REMOVED - requires authentication
+]);
 const isSettingsRoute = createRouteMatcher(['/settings', '/api/settings']);
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
-      auth().protect();
+      await auth.protect();
       return;
     }
 

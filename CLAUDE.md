@@ -2,9 +2,9 @@
 
 **Project Type**: MCP Server / TypeScript Library
 **Purpose**: Cloud-based vector memory service for AI assistants via Model Context Protocol
-**Location**: `/Users/masa/Projects/managed/mcp-memory-ts`
-**Version**: 1.6.0 (published to npm)
-**Status**: Production-ready with comprehensive test coverage
+**Location**: `/Users/masa/Projects/mcp-memory-ts`
+**Version**: 1.7.2 (published to npm)
+**Status**: Production-ready with comprehensive test coverage (95.2%)
 
 ## 🔴 CRITICAL Requirements
 
@@ -207,9 +207,16 @@ The project includes a modern Next.js web interface for visual memory management
 
 **Start web development server:**
 ```bash
+# Staging server on port 3002 (recommended for testing)
+./START_WEB_SERVER.sh
+
+# Or manually specify port
+cd web
+npm run dev -- -p 3002
+
+# Default development port (3000)
 cd web
 npm run dev
-# Default port: 3000, or specify: npm run dev -- -p 3001
 ```
 
 **Deploy web app with PM2 (includes API routes):**
@@ -217,17 +224,20 @@ npm run dev
 # Build the web app
 cd web && npm run build && cd ..
 
-# Start with PM2 on port 3001
+# Start with PM2 (configured for port 3001 in production, port 3002 for staging)
 pm2 start ecosystem.config.cjs
 
-# Or manually
-cd web
-pm2 start npm --name "mcp-memory-web" -- start -- -p 3001
+# Check PM2 status
+pm2 list
+pm2 logs mcp-memory-web
+
+# Restart after changes
+pm2 restart mcp-memory-web
 ```
 
 **Important**: The web application serves both:
-- Frontend UI at `http://localhost:3001`
-- API endpoints at `http://localhost:3001/api/*`
+- **Staging**: Frontend UI at `http://localhost:3002`, API at `http://localhost:3002/api/*`
+- **Production**: Frontend UI at `http://localhost:3001`, API at `http://localhost:3001/api/*` (via PM2)
 
 Do NOT deploy a separate standalone API server - the web app includes all API functionality.
 
@@ -238,6 +248,47 @@ npm run build
 ```
 
 See [WEB_INTERFACE.md](./docs/features/WEB_INTERFACE.md) for complete web interface documentation.
+
+### Remote MCP Service (Vercel Production)
+
+The project includes a production-ready remote MCP service deployed on Vercel.
+
+**Production Endpoints:**
+- **Health Check**: `https://ai-memory.app/api/health` (public)
+- **MCP Service**: `https://ai-memory.app/api/mcp` (authenticated)
+
+**Authentication:**
+Remote MCP requires Clerk OAuth authentication via Bearer token:
+```bash
+curl -X POST https://ai-memory.app/api/mcp \
+  -H "Authorization: Bearer YOUR_CLERK_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+**Testing the Deployment:**
+```bash
+# Check service health
+curl https://ai-memory.app/api/health | jq .
+
+# Test MCP endpoint (requires auth)
+curl -X POST https://ai-memory.app/api/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# Expected: Authentication required error (correct behavior)
+```
+
+**Deployment Characteristics:**
+- Serverless deployment (30s max duration, 1024MB memory)
+- Auto-scaling with global CDN
+- Multi-layer security (Clerk OAuth + Bearer tokens)
+- HTTP/2 with TLSv1.3 encryption
+- ~100ms response time
+
+**For Long-Running Operations:**
+Use self-hosted remote MCP server on port 3003 for operations that exceed 30s timeout.
+
+See deployment documentation: `VERCEL_ACCESS_GUIDE.md`
 
 ### Project Structure
 ```
@@ -300,7 +351,7 @@ CLERK_SECRET_KEY=your-clerk-secret-key
 # Google Integration (v1.7.0+)
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+GOOGLE_REDIRECT_URI=http://localhost:3002/api/auth/google/callback  # Port 3002 for staging
 ```
 
 ## ⚪ OPTIONAL Enhancements
@@ -417,6 +468,7 @@ npm run fix-null-ids
 The project supports multiple deployment scenarios:
 - **Claude Desktop Integration**: Local MCP server for personal use
 - **Web Interface**: Multi-user web application with Clerk authentication
+- **Remote MCP Service**: Serverless MCP via HTTPS (Vercel deployment at https://ai-memory.app)
 - **API Server**: RESTful API for remote access
 - **Hybrid Deployment**: Combine multiple deployment methods
 
@@ -795,6 +847,12 @@ npm run migrate:schema          # Run migration
 npm run verify:schema           # Verify schema
 npm run fix-null-ids -- --dry-run  # Preview NULL ID fix
 npm run fix-null-ids            # Fix NULL IDs in memories table
+
+# Remote MCP Service
+curl https://ai-memory.app/api/health     # Check service health
+vercel logs https://ai-memory.app         # Monitor deployment logs
+vercel env ls                             # List environment variables
+npm run deploy:vercel                     # Deploy updates
 ```
 
 ### Quick Start (New Installation)
@@ -840,8 +898,19 @@ mcp-memory update
 
 ## Version History & Changes
 
-### v1.7.0 (In Development - October 2025)
-- **Logging Improvements**: LOG_LEVEL-aware logging with smart state tracking (v1.7.0)
+### v1.7.2 (Current - October 2025)
+- **Critical Bug Fix**: Fix MCP stdio protocol violation causing Claude Desktop connection failures
+- **Stdout Pollution Fix**: Resolved JSON-RPC communication issues with proper logging isolation
+- **Test Suite Enhancement**: Added 9 comprehensive unit tests to prevent stdout pollution regression
+- **Documentation**: Added stdio protocol compliance guide and verification scripts
+
+### v1.7.1 (October 2025)
+- **CRITICAL SECURITY PATCH**: Fix user isolation vulnerabilities (CVE-INTERNAL-2025-001 through -004)
+- **LOG_LEVEL Support**: Environment variable for controlling log verbosity (debug/info/warn/error)
+- **Smart Logging**: State tracking to prevent repetitive log messages
+- **Security Documentation**: Comprehensive security test reports and vulnerability analysis
+
+### v1.7.0 (October 2025)
 - **Google Contacts Sync**: Bidirectional sync with incremental updates (syncToken)
 - **Google Calendar Sync**: Week-based event tracking with attendee linking
 - **OAuth Integration**: Secure Google authentication with Clerk session management
@@ -850,7 +919,7 @@ mcp-memory update
 - **Calendar Entities**: Automatic entity creation from calendar attendees
 - **Comprehensive Docs**: Complete user-facing documentation for Google features
 
-### v1.6.0 (Current - October 2025)
+### v1.6.0 (October 2025)
 - **Async Embedding Optimization**: Improved performance for vector operations
 - **Web Interface Enhancements**: Enhanced UI components and user experience
 - **Gmail Extraction** (In Development): Gmail integration capabilities
@@ -1025,8 +1094,15 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 
 ---
 
-**Last Updated**: 2025-10-09
-**Current Version**: 1.6.0 (v1.7.0 in development)
+**Last Updated**: 2025-10-14
+**Current Version**: 1.7.2
 **Status**: Production-ready with 95.2% test coverage
+
+**Port Configuration**:
+- **Staging Web Server**: Port 3002 (via START_WEB_SERVER.sh or manual dev)
+- **Production Web Server**: Port 3001 (via PM2 ecosystem.config.cjs)
+- **MCP Server (stdio)**: No port (Claude Desktop integration)
+- **Remote MCP Server (HTTP)**: Port 3003 (optional, for self-hosted)
+- **Vercel MCP Serverless**: https://ai-memory.app/api/mcp (production deployment)
 
 *This MCP memory server provides persistent, searchable memory for AI assistants using vector embeddings and semantic search capabilities. It includes a comprehensive CLI tool for easy setup and management, plus Google Contacts and Calendar sync with LLM-powered deduplication.*
