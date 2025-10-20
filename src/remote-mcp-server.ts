@@ -758,7 +758,7 @@ Total Tokens: ${usage.total.tokens.toLocaleString()}
 
 // Start the server if this file is run directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const port = process.env.REMOTE_MCP_PORT ? parseInt(process.env.REMOTE_MCP_PORT) : 3001;
+  const port = process.env.REMOTE_MCP_PORT ? parseInt(process.env.REMOTE_MCP_PORT) : 3003;
   const host = process.env.REMOTE_MCP_HOST || '0.0.0.0';
 
   const server = new RemoteMCPServer(port, host);
