@@ -168,7 +168,57 @@ export function extractBearerToken(authHeader?: string): string | null {
 }
 
 /**
- * Middleware to authenticate requests using Clerk
+ * Verify OAuth access token and extract user information
+ */
+export async function verifyOAuthToken(
+  token: string
+): Promise<AuthenticatedUser | null> {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { initDatabaseFromEnv } = await import('../database/connection.js');
+    const { validateAccessToken } = await import('../utils/oauth.js');
+
+    const db = initDatabaseFromEnv();
+    await db.connect();
+
+    const validation = await validateAccessToken(db, token);
+
+    if (!validation.valid || !validation.userId) {
+      await db.disconnect();
+      return null;
+    }
+
+    // Get user email from database
+    const userResult = await db.execute(
+      'SELECT email FROM users WHERE id = ?',
+      [validation.userId]
+    );
+
+    await db.disconnect();
+
+    if (userResult.rows.length === 0) {
+      console.error('[MCP Auth] User not found for OAuth token');
+      return null;
+    }
+
+    const userData = userResult.rows[0] as any;
+
+    console.info(`[MCP Auth] Authenticated via OAuth: ${userData.email}`);
+
+    return {
+      userId: validation.userId,
+      email: userData.email,
+      sessionId: token, // Use token as session identifier
+      authenticated: true,
+    };
+  } catch (error) {
+    console.error('[MCP Auth] OAuth token verification failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Middleware to authenticate requests using Clerk or OAuth
  */
 export async function authenticateRequest(
   authHeader?: string,
@@ -187,6 +237,22 @@ export async function authenticateRequest(
   if (sessionManager) {
     const user = sessionManager.validateSession(token);
     if (user) {
+      return {
+        authenticated: true,
+        user,
+      };
+    }
+  }
+
+  // Check if this is an OAuth access token (starts with 'mcp_at_')
+  if (token.startsWith('mcp_at_')) {
+    const user = await verifyOAuthToken(token);
+    if (user) {
+      // Create session if we have a session manager
+      if (sessionManager) {
+        sessionManager.createSession(user);
+      }
+
       return {
         authenticated: true,
         user,

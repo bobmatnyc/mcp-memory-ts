@@ -194,6 +194,18 @@ mcp-memory google calendar-sync --user-email user@example.com
 mcp-memory google calendar-sync --user-email user@example.com --week 2025-41 --create-entities
 ```
 
+**OAuth 2.0 Management:**
+```bash
+# Register OAuth client (e.g., Claude.AI)
+npm run oauth:register-client
+
+# Test OAuth implementation
+npm run oauth:test-flow
+
+# Cleanup expired tokens (run as cron job)
+npm run oauth:cleanup
+```
+
 See [CLI-GUIDE.md](./docs/guides/CLI-GUIDE.md), [CONTACTS_SYNC_GUIDE.md](./docs/guides/CONTACTS_SYNC_GUIDE.md), [GOOGLE_CONTACTS_SYNC_GUIDE.md](./docs/guides/GOOGLE_CONTACTS_SYNC_GUIDE.md), and [GOOGLE_CALENDAR_SYNC_GUIDE.md](./docs/guides/GOOGLE_CALENDAR_SYNC_GUIDE.md) for complete documentation.
 
 ### Web Interface Commands
@@ -374,6 +386,50 @@ GOOGLE_REDIRECT_URI=http://localhost:3002/api/auth/google/callback  # Port 3002 
 - Google Contacts sync with incremental updates (v1.7.0+)
 - Google Calendar week-based event tracking (v1.7.0+)
 - Cross-platform contact synchronization (v1.7.0+)
+
+## OAuth 2.0 Provider (v1.8.0+)
+
+The project includes a complete OAuth 2.0 authorization server for Claude.AI custom connector integration.
+
+**Setup OAuth Provider:**
+```bash
+# 1. Run database migration
+npm run migrate:oauth
+
+# 2. Register OAuth client (e.g., Claude.AI)
+npm run oauth:register-client
+
+# 3. Test OAuth flow
+npm run oauth:test-flow
+```
+
+**OAuth Endpoints:**
+- Authorization: `https://your-domain.com/api/oauth/authorize`
+- Token: `https://your-domain.com/api/oauth/token`
+- Consent Screen: `https://your-domain.com/oauth/consent`
+
+**Features:**
+- Authorization code grant flow
+- Refresh token support
+- Scope-based permissions (`memories:read`, `memories:write`, `entities:read`, `entities:write`)
+- Secure token management (bcrypt hashing, 7-day access token expiry)
+- PKCE support (code challenge fields included)
+- User consent interface
+- Token revocation capability
+- Automatic token cleanup
+
+**Authentication Support:**
+The MCP server now supports two authentication methods:
+1. **Clerk Bearer Tokens**: Existing authentication (unchanged)
+2. **OAuth Access Tokens**: New OAuth 2.0 tokens (prefix: `mcp_at_`)
+
+Both methods work seamlessly with all MCP endpoints.
+
+**Documentation:**
+- Setup Guide: [docs/guides/OAUTH_SETUP_GUIDE.md](./docs/guides/OAUTH_SETUP_GUIDE.md)
+- Quick Start: [docs/guides/OAUTH_QUICK_START.md](./docs/guides/OAUTH_QUICK_START.md)
+- Implementation Summary: [OAUTH_IMPLEMENTATION_SUMMARY.md](./OAUTH_IMPLEMENTATION_SUMMARY.md)
+- Deployment Checklist: [OAUTH_DEPLOYMENT_CHECKLIST.md](./OAUTH_DEPLOYMENT_CHECKLIST.md)
 
 ## Development Workflows
 
