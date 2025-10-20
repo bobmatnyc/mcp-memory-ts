@@ -82,6 +82,7 @@ async function processRequest(
 
     switch (method) {
       case 'initialize':
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ai-memory.app';
         return {
           jsonrpc: '2.0',
           id: validId,
@@ -94,6 +95,14 @@ async function processRequest(
             serverInfo: {
               name: 'vercel-mcp-memory-ts',
               version: '1.0.0',
+            },
+            // MCP OAuth 2.1 metadata
+            oauth: {
+              authorization_endpoint: `${baseUrl}/api/oauth/authorize`,
+              token_endpoint: `${baseUrl}/api/oauth/token`,
+              registration_endpoint: `${baseUrl}/api/oauth/register`,
+              discovery_endpoint: `${baseUrl}/.well-known/oauth-authorization-server`,
+              scopes_supported: ['memories:read', 'memories:write', 'entities:read', 'entities:write'],
             },
           },
         };
