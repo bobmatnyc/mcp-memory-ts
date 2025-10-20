@@ -146,7 +146,8 @@ export async function googleCalendarSyncCommand(
       );
 
       if (!result.ok) {
-        console.error(`${icons.error} Failed to fetch events: ${result.error.message}`);
+        const { error } = result;
+        console.error(`${icons.error} Failed to fetch events: ${error.message}`);
         continue;
       }
 

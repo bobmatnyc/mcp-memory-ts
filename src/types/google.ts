@@ -25,11 +25,11 @@ export interface GoogleOAuthTokens {
  * Google API error types
  */
 export type SyncError =
-  | { type: 'EXPIRED_SYNC_TOKEN'; message: string }
-  | { type: 'RATE_LIMIT'; retryAfter: number; message: string }
-  | { type: 'NETWORK_ERROR'; message: string }
-  | { type: 'AUTH_ERROR'; message: string }
-  | { type: 'VALIDATION_ERROR'; message: string };
+  | { type: 'EXPIRED_SYNC_TOKEN'; message: string; statusCode?: number }
+  | { type: 'RATE_LIMIT'; retryAfter: number; message: string; statusCode?: number }
+  | { type: 'NETWORK_ERROR'; message: string; statusCode?: number }
+  | { type: 'AUTH_ERROR'; message: string; statusCode?: number }
+  | { type: 'VALIDATION_ERROR'; message: string; statusCode?: number };
 
 /**
  * Result type for Google operations
@@ -37,6 +37,20 @@ export type SyncError =
 export type SyncResult<T> =
   | { ok: true; data: T; syncToken?: string }
   | { ok: false; error: SyncError };
+
+/**
+ * Type guard to check if result is an error
+ */
+export function isError<T>(result: SyncResult<T>): result is { ok: false; error: SyncError } {
+  return !result.ok;
+}
+
+/**
+ * Type guard to check if result is successful
+ */
+export function isSuccess<T>(result: SyncResult<T>): result is { ok: true; data: T; syncToken?: string } {
+  return result.ok;
+}
 
 /**
  * OAuth scope definitions

@@ -24,6 +24,7 @@ export { GOOGLE_SCOPES };
  */
 export class GoogleAuthService {
   private oauth2Client: OAuth2Client;
+  private tokenRefreshPromises: Map<string, Promise<void>> = new Map();
 
   constructor(
     private db: DatabaseOperations,
@@ -102,22 +103,40 @@ export class GoogleAuthService {
    */
   async storeTokens(userId: string, tokens: GoogleOAuthTokens): Promise<SyncResult<void>> {
     try {
-      let user = await this.db.getUserByEmail(userId);
+      console.log('[GoogleAuthService] Storing tokens for user:', userId);
+
+      // Try to find user by ID first (most common case - Clerk userId)
+      let user = await this.db.getUserById(userId);
+
+      // Fall back to email lookup if not found by ID
       if (!user) {
-        user = await this.db.getUserById(userId);
+        console.log('[GoogleAuthService] User not found by ID, trying email lookup:', userId);
+        user = await this.db.getUserByEmail(userId);
       }
 
       if (!user) {
+        console.error('[GoogleAuthService] User not found in database:', {
+          userId,
+          triedById: true,
+          triedByEmail: true,
+        });
         return {
           ok: false,
           error: {
             type: 'VALIDATION_ERROR',
-            message: `User not found: ${userId}`,
+            message: `User not found in database: ${userId}. User must exist before storing tokens.`,
           },
         };
       }
 
-      await this.db.updateUser(user.id, {
+      console.log('[GoogleAuthService] User found, updating metadata:', {
+        userId: user.id,
+        email: user.email,
+        hasExistingMetadata: !!user.metadata,
+      });
+
+      // Update user metadata with tokens
+      const updatedUser = await this.db.updateUser(user.id, {
         metadata: {
           ...(user.metadata || {}),
           googleOAuthTokens: tokens,
@@ -125,8 +144,44 @@ export class GoogleAuthService {
         },
       });
 
+      if (!updatedUser) {
+        console.error('[GoogleAuthService] User update returned null:', user.id);
+        return {
+          ok: false,
+          error: {
+            type: 'NETWORK_ERROR',
+            message: 'Failed to update user - update operation returned null',
+          },
+        };
+      }
+
+      // Verify tokens were stored
+      const hasTokens = updatedUser.metadata?.googleOAuthTokens;
+      console.log('[GoogleAuthService] Token storage result:', {
+        userId: updatedUser.id,
+        tokensStored: !!hasTokens,
+        metadataKeys: updatedUser.metadata ? Object.keys(updatedUser.metadata) : [],
+      });
+
+      if (!hasTokens) {
+        console.error('[GoogleAuthService] Tokens not found in updated user metadata');
+        return {
+          ok: false,
+          error: {
+            type: 'NETWORK_ERROR',
+            message: 'Token storage verification failed - tokens not found after update',
+          },
+        };
+      }
+
+      console.log('[GoogleAuthService] Tokens stored and verified successfully');
       return { ok: true, data: undefined };
     } catch (error) {
+      console.error('[GoogleAuthService] Error storing tokens:', {
+        userId,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return {
         ok: false,
         error: {
@@ -166,9 +221,18 @@ export class GoogleAuthService {
         expiry_date: tokens.expiry_date,
       });
 
-      // Auto-refresh token handler
+      // Auto-refresh token handler with race condition prevention
       client.on('tokens', async newTokens => {
-        console.log('🔄 OAuth tokens auto-refreshed');
+        console.log('🔄 OAuth tokens auto-refreshed for user:', userId);
+
+        // Wait for any existing refresh operation to complete
+        const existingRefresh = this.tokenRefreshPromises.get(userId);
+        if (existingRefresh) {
+          console.log('[GoogleAuthService] Waiting for existing token refresh to complete...');
+          await existingRefresh;
+        }
+
+        // Store new tokens with synchronization
         const updatedTokens: GoogleOAuthTokens = {
           access_token: newTokens.access_token || tokens.access_token,
           refresh_token: newTokens.refresh_token || tokens.refresh_token,
@@ -176,7 +240,20 @@ export class GoogleAuthService {
           token_type: newTokens.token_type || tokens.token_type,
           expiry_date: newTokens.expiry_date || tokens.expiry_date,
         };
-        await this.storeTokens(userId, updatedTokens);
+
+        const refreshPromise = (async () => {
+          const result = await this.storeTokens(userId, updatedTokens);
+          if (!result.ok) {
+            const { error } = result;
+            console.error('[GoogleAuthService] Failed to store refreshed tokens:', error);
+          }
+        })().finally(() => {
+          // Clean up promise after completion
+          this.tokenRefreshPromises.delete(userId);
+        });
+
+        this.tokenRefreshPromises.set(userId, refreshPromise);
+        await refreshPromise;
       });
 
       return client;
@@ -269,6 +346,29 @@ export class GoogleAuthService {
     } catch (error) {
       console.error('Failed to validate scopes:', error);
       return false;
+    }
+  }
+
+  /**
+   * Get granted scopes for a user
+   *
+   * @param userId - User email or ID
+   * @returns Array of granted scopes or null if not connected
+   */
+  async getUserScopes(userId: string): Promise<string[] | null> {
+    try {
+      let user = await this.db.getUserByEmail(userId);
+      if (!user) {
+        user = await this.db.getUserById(userId);
+      }
+
+      const tokens = user?.metadata?.googleOAuthTokens as GoogleOAuthTokens | undefined;
+      if (!tokens) return null;
+
+      return tokens.scope.split(' ').filter(s => s.length > 0);
+    } catch (error) {
+      console.error('Failed to get user scopes:', error);
+      return null;
     }
   }
 }

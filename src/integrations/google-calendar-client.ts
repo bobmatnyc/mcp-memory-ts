@@ -130,7 +130,8 @@ export class GoogleCalendarClient {
         const weekResult = await this.getEventsForWeek(weekId, calendarId);
 
         if (!weekResult.ok) {
-          return weekResult;
+          // Return error with correct return type
+          return { ok: false, error: weekResult.error };
         }
 
         results.push(weekResult.data);

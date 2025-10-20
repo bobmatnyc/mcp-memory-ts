@@ -36,6 +36,7 @@ export interface ListContactsResponse {
   contacts: GoogleContact[];
   nextSyncToken: string;
   nextPageToken?: string;
+  totalItems?: number; // Total available contacts (if provided by Google API)
 }
 
 /**
@@ -46,9 +47,11 @@ export interface ListContactsResponse {
  * - Batch operations
  * - Error handling with retry logic
  * - Rate limit management
+ * - Timeout protection
  */
 export class GooglePeopleClient {
   private people: people_v1.People;
+  private readonly API_TIMEOUT_MS = 30000; // 30 seconds
 
   constructor(private auth: OAuth2Client) {
     this.people = google.people({ version: 'v1', auth });
@@ -83,12 +86,27 @@ export class GooglePeopleClient {
 
       const response = await this.people.people.connections.list(params);
 
+      // Log raw API response to check for totalPeople or totalItems
+      process.stderr.write(`[GooglePeopleClient] Raw API response keys: ${JSON.stringify({
+        hasConnections: !!response.data.connections,
+        connectionCount: response.data.connections?.length || 0,
+        hasNextPageToken: !!response.data.nextPageToken,
+        hasNextSyncToken: !!response.data.nextSyncToken,
+        hasTotalPeople: !!(response.data as any).totalPeople,
+        hasTotalItems: !!(response.data as any).totalItems,
+        totalPeople: (response.data as any).totalPeople,
+        totalItems: (response.data as any).totalItems,
+        allKeys: Object.keys(response.data),
+      })}\n`);
+
       return {
         ok: true,
         data: {
           contacts: (response.data.connections || []).map(this.mapToPerson),
           nextSyncToken: response.data.nextSyncToken || '',
           nextPageToken: response.data.nextPageToken ?? undefined,
+          // Include totalPeople if available from Google API
+          totalItems: (response.data as any).totalPeople ?? (response.data as any).totalItems,
         },
       };
     } catch (error: any) {
@@ -108,6 +126,9 @@ export class GooglePeopleClient {
     let finalSyncToken = '';
 
     try {
+      console.log('[GooglePeopleClient] Starting getAllContacts with syncToken:', !!syncToken);
+      const startTime = Date.now();
+
       do {
         const params: people_v1.Params$Resource$People$Connections$List = {
           resourceName: 'people/me',
@@ -123,12 +144,28 @@ export class GooglePeopleClient {
           params.sortOrder = 'LAST_MODIFIED_DESCENDING';
         }
 
-        const response = await this.people.people.connections.list(params);
+        console.log('[GooglePeopleClient] Calling People API (page)...');
 
-        allContacts.push(...(response.data.connections || []).map(this.mapToPerson));
+        // Call with timeout protection
+        const response = await this.callWithTimeout(
+          this.people.people.connections.list(params),
+          `Google People API connections.list`
+        );
+
+        const connections = response.data.connections || [];
+        console.log('[GooglePeopleClient] Received', connections.length, 'contacts in page');
+
+        allContacts.push(...connections.map(this.mapToPerson));
         nextPageToken = response.data.nextPageToken ?? undefined;
         finalSyncToken = response.data.nextSyncToken || finalSyncToken;
       } while (nextPageToken);
+
+      const duration = Date.now() - startTime;
+      console.log('[GooglePeopleClient] getAllContacts completed:', {
+        totalContacts: allContacts.length,
+        durationMs: duration,
+        hasSyncToken: !!finalSyncToken,
+      });
 
       return {
         ok: true,
@@ -138,8 +175,31 @@ export class GooglePeopleClient {
         },
       };
     } catch (error: any) {
+      console.error('[GooglePeopleClient] getAllContacts error:', {
+        message: error.message,
+        code: error.code,
+        type: error.constructor.name,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+      });
       return this.handleError(error);
     }
+  }
+
+  /**
+   * Wrap API call with timeout protection
+   */
+  private async callWithTimeout<T>(promise: Promise<T>, operationName: string): Promise<T> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(
+          new Error(
+            `${operationName} timed out after ${this.API_TIMEOUT_MS}ms. Please try again or check your internet connection.`
+          )
+        );
+      }, this.API_TIMEOUT_MS);
+    });
+
+    return Promise.race([promise, timeoutPromise]);
   }
 
   /**
@@ -181,6 +241,28 @@ export class GooglePeopleClient {
         resourceName,
         updatePersonFields: updateMask.join(','),
         requestBody: contact,
+      });
+
+      return {
+        ok: true,
+        data: this.mapToPerson(response.data),
+      };
+    } catch (error: any) {
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Get a single contact by resource name
+   *
+   * @param resourceName - Google resource name (e.g., "people/123")
+   * @returns Sync result with contact
+   */
+  async getContact(resourceName: string): Promise<SyncResult<GoogleContact>> {
+    try {
+      const response = await this.people.people.get({
+        resourceName,
+        personFields: CONTACT_FIELD_MASK,
       });
 
       return {
@@ -257,19 +339,33 @@ export class GooglePeopleClient {
    * Handle Google API errors and convert to SyncError
    */
   private handleError<T>(error: any): { ok: false; error: SyncError } {
+    // Log raw error for debugging
+    console.error('[GooglePeopleClient] Raw error details:', {
+      message: error.message,
+      code: error.code,
+      statusCode: error.response?.status || error.statusCode,
+      statusText: error.response?.statusText,
+      errorType: error.constructor.name,
+      hasResponse: !!error.response,
+      responseData: error.response?.data,
+    });
+
+    const statusCode = error.code || error.response?.status || error.statusCode;
+
     // Sync token expired (HTTP 410 Gone)
-    if (error.code === 410 || error.message?.includes('Sync token expired')) {
+    if (statusCode === 410 || error.message?.includes('Sync token expired')) {
       return {
         ok: false,
         error: {
           type: 'EXPIRED_SYNC_TOKEN',
           message: 'Sync token expired, full sync required',
+          statusCode,
         },
       };
     }
 
     // Rate limit exceeded (HTTP 429 or 403 with rate limit)
-    if (error.code === 429 || (error.code === 403 && error.message?.includes('rate'))) {
+    if (statusCode === 429 || (statusCode === 403 && error.message?.includes('rate'))) {
       const retryAfter = parseInt(error.response?.headers['retry-after'] || '60', 10);
       return {
         ok: false,
@@ -277,17 +373,30 @@ export class GooglePeopleClient {
           type: 'RATE_LIMIT',
           retryAfter,
           message: `Rate limit exceeded, retry after ${retryAfter}s`,
+          statusCode,
         },
       };
     }
 
     // Authentication error (HTTP 401 or 403)
-    if (error.code === 401 || error.code === 403) {
+    if (statusCode === 401 || statusCode === 403) {
       return {
         ok: false,
         error: {
           type: 'AUTH_ERROR',
-          message: 'Authentication failed - token may be invalid or revoked',
+          message: `Authentication failed (${statusCode}): ${error.message || 'Token may be invalid or revoked'}`,
+          statusCode,
+        },
+      };
+    }
+
+    // Timeout errors
+    if (error.message?.includes('timed out') || error.message?.includes('timeout')) {
+      return {
+        ok: false,
+        error: {
+          type: 'NETWORK_ERROR',
+          message: error.message,
         },
       };
     }
@@ -298,6 +407,7 @@ export class GooglePeopleClient {
       error: {
         type: 'NETWORK_ERROR',
         message: error.message || 'Unknown error occurred',
+        statusCode,
       },
     };
   }
