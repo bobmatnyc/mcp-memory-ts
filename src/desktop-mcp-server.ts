@@ -50,6 +50,7 @@ class SimpleMCPServer {
   private requestCounter = 0;
   private memoryCore: MemoryCore | null = null;
   private db: any = null;
+  private dbOps: DatabaseOperations | null = null;
   private defaultUserId: string | null = null;
 
   constructor() {
@@ -96,6 +97,7 @@ class SimpleMCPServer {
     // Initialize database and memory core
     try {
       this.db = initDatabaseFromEnv();
+      this.dbOps = new DatabaseOperations(this.db);
       this.memoryCore = new MemoryCore(this.db, process.env.OPENAI_API_KEY);
       await this.memoryCore.initialize();
       this.logDebug('Memory core initialized successfully');
@@ -103,8 +105,7 @@ class SimpleMCPServer {
       // Cache the default user ID (UUID, not email)
       const defaultEmail = process.env.DEFAULT_USER_EMAIL || process.env.MCP_DEFAULT_USER_EMAIL;
       if (defaultEmail) {
-        const dbOps = new DatabaseOperations(this.db);
-        const user = await dbOps.getUserByEmail(defaultEmail);
+        const user = await this.dbOps.getUserByEmail(defaultEmail);
         if (user) {
           this.defaultUserId = user.id;
           this.logDebug(`Cached user ID for ${defaultEmail}: ${this.defaultUserId}`);
@@ -391,6 +392,126 @@ class SimpleMCPServer {
           },
         },
       },
+      {
+        name: 'list_entities',
+        description: 'List all entities for the user',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            limit: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 1000,
+              description: 'Maximum number of entities to retrieve',
+              default: 100
+            },
+          },
+        },
+      },
+      {
+        name: 'get_entity',
+        description: 'Retrieve a specific entity by ID',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Entity ID' },
+          },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'search_entities',
+        description: 'Search entities by name, description, or other attributes',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Search query' },
+            limit: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 100,
+              description: 'Maximum number of entities to retrieve',
+              default: 10
+            },
+          },
+          required: ['query'],
+        },
+      },
+      {
+        name: 'create_entity',
+        description: 'Create a new entity (person, company, organization)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Entity name' },
+            entityType: {
+              type: 'string',
+              enum: ['person', 'company', 'organization', 'project', 'other'],
+              description: 'Type of entity',
+              default: 'person'
+            },
+            description: { type: 'string', description: 'Entity description' },
+            importance: {
+              type: 'number',
+              minimum: 1,
+              maximum: 4,
+              description: 'Importance level (1=low, 2=medium, 3=high, 4=critical)',
+              default: 2
+            },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Tags for categorization'
+            },
+            contactInfo: { type: 'string', description: 'Contact information' },
+            email: { type: 'string', description: 'Email address' },
+            phone: { type: 'string', description: 'Phone number' },
+            company: { type: 'string', description: 'Company name (for persons)' },
+            title: { type: 'string', description: 'Job title (for persons)' },
+          },
+          required: ['name', 'entityType'],
+        },
+      },
+      {
+        name: 'update_entity',
+        description: 'Update an existing entity',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Entity ID to update' },
+            name: { type: 'string', description: 'Updated name' },
+            description: { type: 'string', description: 'Updated description' },
+            importance: {
+              type: 'number',
+              minimum: 1,
+              maximum: 4,
+              description: 'Updated importance level'
+            },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Updated tags'
+            },
+            contactInfo: { type: 'string', description: 'Updated contact information' },
+            email: { type: 'string', description: 'Updated email address' },
+            phone: { type: 'string', description: 'Updated phone number' },
+            company: { type: 'string', description: 'Updated company name' },
+            title: { type: 'string', description: 'Updated job title' },
+          },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'delete_entity',
+        description: 'Delete an entity by ID',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Entity ID to delete' },
+          },
+          required: ['id'],
+        },
+      },
     ];
 
     return {
@@ -610,6 +731,164 @@ Total Tokens: ${usage.total.tokens.toLocaleString()}
           } catch (error) {
             resultText = `❌ Failed to get daily costs: ${error instanceof Error ? error.message : String(error)}`;
           }
+          break;
+
+        case 'list_entities':
+          const listEntitiesUserId = this.getUserId();
+          if (!this.dbOps) throw new Error('Database operations not initialized');
+          const listResult = await this.dbOps.getEntitiesByUserId(listEntitiesUserId, args.limit || 100);
+
+          if (listResult.length === 0) {
+            resultText = '📋 No entities found';
+          } else {
+            resultText = `📋 Found ${listResult.length} entities:\n\n`;
+            listResult.forEach((entity: any, index: number) => {
+              const tagsDisplay = Array.isArray(entity.tags) && entity.tags.length > 0
+                ? entity.tags.join(', ')
+                : 'none';
+              
+              resultText += `${index + 1}. ${entity.name} (${entity.entityType})\n`;
+              resultText += `   ID: ${entity.id}\n`;
+              if (entity.description) resultText += `   Description: ${entity.description}\n`;
+              if (entity.email) resultText += `   Email: ${entity.email}\n`;
+              if (entity.company) resultText += `   Company: ${entity.company}\n`;
+              if (entity.title) resultText += `   Title: ${entity.title}\n`;
+              resultText += `   Importance: ${entity.importance || 2}\n`;
+              resultText += `   Tags: ${tagsDisplay}\n\n`;
+            });
+          }
+          break;
+
+        case 'get_entity':
+          const getEntityUserId = this.getUserId();
+          if (!this.dbOps) throw new Error('Database operations not initialized');
+          const entityResult = await this.dbOps.getEntityById(args.id, getEntityUserId);
+
+          if (entityResult) {
+            const entity = entityResult as any;
+            const tagsDisplay = Array.isArray(entity.tags) && entity.tags.length > 0
+              ? entity.tags.join(', ')
+              : 'none';
+
+            resultText = `👤 Entity Details:\n\n`;
+            resultText += `Name: ${entity.name}\n`;
+            resultText += `Type: ${entity.entityType}\n`;
+            resultText += `ID: ${entity.id}\n`;
+            if (entity.description) resultText += `Description: ${entity.description}\n`;
+            if (entity.email) resultText += `Email: ${entity.email}\n`;
+            if (entity.phone) resultText += `Phone: ${entity.phone}\n`;
+            if (entity.company) resultText += `Company: ${entity.company}\n`;
+            if (entity.title) resultText += `Title: ${entity.title}\n`;
+            if (entity.contactInfo) resultText += `Contact Info: ${entity.contactInfo}\n`;
+            resultText += `Importance: ${entity.importance || 2}\n`;
+            resultText += `Tags: ${tagsDisplay}\n`;
+            resultText += `Created: ${new Date(entity.createdAt).toLocaleString()}\n`;
+            if (entity.lastInteraction) resultText += `Last Interaction: ${new Date(entity.lastInteraction).toLocaleString()}\n`;
+            if (entity.interactionCount) resultText += `Interaction Count: ${entity.interactionCount}\n`;
+          } else {
+            resultText = `❌ Entity not found: ${args.id}`;
+          }
+          break;
+
+        case 'search_entities':
+          const searchEntitiesUserId = this.getUserId();
+          const searchEntitiesResult = await this.memoryCore.searchEntities(args.query, {
+            userId: searchEntitiesUserId,
+            limit: args.limit || 10,
+          });
+
+          if (searchEntitiesResult.status === MCPToolResultStatus.SUCCESS && searchEntitiesResult.data) {
+            const entities = searchEntitiesResult.data as any[];
+            if (entities.length === 0) {
+              resultText = `🔍 No entities found for "${args.query}"`;
+            } else {
+              resultText = `🔍 Found ${entities.length} entities for "${args.query}":\n\n`;
+              entities.forEach((entity, index) => {
+                const tagsDisplay = Array.isArray(entity.tags) && entity.tags.length > 0
+                  ? entity.tags.join(', ')
+                  : 'none';
+                
+                resultText += `${index + 1}. ${entity.name} (${entity.entityType})\n`;
+                resultText += `   ID: ${entity.id}\n`;
+                if (entity.description) resultText += `   Description: ${entity.description.substring(0, 100)}${entity.description.length > 100 ? '...' : ''}\n`;
+                if (entity.email) resultText += `   Email: ${entity.email}\n`;
+                if (entity.company) resultText += `   Company: ${entity.company}\n`;
+                resultText += `   Tags: ${tagsDisplay}\n\n`;
+              });
+            }
+          } else {
+            resultText = `❌ Search failed: ${searchEntitiesResult.error || searchEntitiesResult.message}`;
+          }
+          break;
+
+        case 'create_entity':
+          const createEntityUserId = this.getUserId();
+          const createResult = await this.memoryCore.createEntity(
+            args.name,
+            args.entityType as any,
+            {
+              userId: createEntityUserId,
+              description: args.description,
+              importance: args.importance,
+              tags: args.tags,
+              contactInfo: args.contactInfo,
+              email: args.email,
+              phone: args.phone,
+              company: args.company,
+              title: args.title,
+            }
+          );
+
+          if (createResult.status === MCPToolResultStatus.SUCCESS) {
+            const entityData = createResult.data as any;
+            resultText = `✅ Entity created successfully!\n\nID: ${entityData?.id}\nName: ${args.name}\nType: ${args.entityType}`;
+          } else {
+            resultText = `❌ Failed to create entity: ${createResult.error || createResult.message}`;
+          }
+          break;
+
+        case 'update_entity':
+          const updateEntityUserId = this.getUserId();
+          if (!this.dbOps) throw new Error('Database operations not initialized');
+          const entityUpdates: any = {};
+          if (args.name !== undefined) entityUpdates.name = args.name;
+          if (args.description !== undefined) entityUpdates.description = args.description;
+          if (args.importance !== undefined) entityUpdates.importance = args.importance;
+          if (args.tags !== undefined) entityUpdates.tags = args.tags;
+          if (args.contactInfo !== undefined) entityUpdates.contactInfo = args.contactInfo;
+          if (args.email !== undefined) entityUpdates.email = args.email;
+          if (args.phone !== undefined) entityUpdates.phone = args.phone;
+          if (args.company !== undefined) entityUpdates.company = args.company;
+          if (args.title !== undefined) entityUpdates.title = args.title;
+
+          const updateEntityResult = await this.dbOps.updateEntity(args.id, entityUpdates, updateEntityUserId);
+
+          if (updateEntityResult) {
+            resultText = `✅ Entity ${args.id} updated successfully!`;
+          } else {
+            resultText = `❌ Failed to update entity: Entity not found or update failed`;
+          }
+          break;
+
+        case 'delete_entity':
+          const deleteEntityUserId = this.getUserId();
+          if (!this.dbOps) throw new Error('Database operations not initialized');
+          
+          // First check if entity exists
+          const entityToDelete = await this.dbOps.getEntityById(args.id, deleteEntityUserId);
+          
+          if (!entityToDelete) {
+            resultText = `❌ Entity not found: ${args.id}`;
+            break;
+          }
+
+          // Delete the entity
+          await this.db.execute('DELETE FROM entities WHERE id = ? AND user_id = ?', [
+            args.id,
+            deleteEntityUserId,
+          ]);
+
+          resultText = `✅ Entity ${args.id} deleted successfully!`;
           break;
 
         default:
