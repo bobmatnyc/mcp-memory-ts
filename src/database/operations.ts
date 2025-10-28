@@ -116,11 +116,11 @@ export class DatabaseOperations {
     const sql = `
       INSERT INTO entities (id, user_id, name, entity_type, person_type, description,
                            company, title, contact_info, email, phone, address,
-                           notes, tags, metadata,
+                           notes, tags, metadata, embedding,
                            importance, website, social_media, relationships,
                            last_interaction, interaction_count,
                            created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     await this.db.execute(sql, [
@@ -143,6 +143,11 @@ export class DatabaseOperations {
       typeof mappedEntity.metadata === 'string'
         ? mappedEntity.metadata
         : stringifyMetadata(mappedEntity.metadata),
+      typeof mappedEntity.embedding === 'string'
+        ? mappedEntity.embedding
+        : entity.embedding
+        ? JSON.stringify(entity.embedding)
+        : null,
       mappedEntity.importance ?? entity.importance ?? 2,
       mappedEntity.website || entity.website || null,
       typeof mappedEntity.social_media === 'string'

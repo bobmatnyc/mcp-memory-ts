@@ -803,11 +803,42 @@ export class MemoryCore {
       description?: string;
       importance?: ImportanceLevel;
       tags?: string[];
+      generateEmbedding?: boolean | 'sync' | 'async';
       [key: string]: any;
     } = {}
   ): Promise<MCPToolResult> {
     try {
       const userId = this.getUserId(options.userId);
+
+      // Generate embedding for entity
+      let embedding: number[] | undefined;
+      const embeddingMode = this.normalizeEmbeddingOption(options.generateEmbedding);
+
+      if (embeddingMode !== 'disabled') {
+        try {
+          const embeddingText = EmbeddingService.createEntityEmbeddingText({
+            name,
+            description: options.description,
+            company: options.company,
+            title: options.title,
+            notes: options.notes,
+            tags: options.tags,
+          });
+
+          if (embeddingMode === 'sync') {
+            embedding = await this.embeddings.generateEmbedding(embeddingText, userId);
+            console.error(
+              `[MemoryCore] ✅ Generated embedding for entity "${name}" (${embedding?.length || 0} dimensions)`
+            );
+          } else {
+            // Async mode - will be generated later
+            console.error(`[MemoryCore] 🔄 Entity "${name}" will have embedding generated asynchronously`);
+          }
+        } catch (error) {
+          console.error(`[MemoryCore] ⚠️  Failed to generate embedding for entity "${name}":`, error);
+          // Continue without embedding
+        }
+      }
 
       const entity = createEntity({
         userId,
@@ -816,6 +847,7 @@ export class MemoryCore {
         description: options.description,
         importance: options.importance || ImportanceLevel.MEDIUM,
         tags: options.tags,
+        embedding,
         ...options,
       });
 
@@ -824,7 +856,11 @@ export class MemoryCore {
       return {
         status: MCPToolResultStatus.SUCCESS,
         message: 'Entity created successfully',
-        data: { id: savedEntity.id, name: savedEntity.name },
+        data: { 
+          id: savedEntity.id, 
+          name: savedEntity.name,
+          hasEmbedding: !!(embedding && embedding.length > 0),
+        },
       };
     } catch (error) {
       return {
@@ -835,18 +871,153 @@ export class MemoryCore {
     }
   }
 
+  /**
+   * Vector search for entities (semantic search)
+   */
+  private async vectorSearchEntities(
+    userId: string,
+    queryEmbedding: number[],
+    options: {
+      threshold?: number;
+      limit?: number;
+    } = {}
+  ): Promise<Entity[]> {
+    // Get all entities with embeddings for the user
+    const entities = await this.dbOps.getEntitiesByUserId(userId, 10000);
+
+    // Find similar entities - ensure embeddings are valid arrays
+    const vectorData = entities
+      .filter(e => {
+        return (
+          Array.isArray(e.embedding) && e.embedding.length > 0 && typeof e.embedding[0] === 'number'
+        );
+      })
+      .map(e => ({ vector: e.embedding!, data: e }));
+
+    if (process.env.MCP_DEBUG) {
+      console.error(`[VectorSearchEntities] Query embedding dimensions: ${queryEmbedding.length}`);
+      console.error(
+        `[VectorSearchEntities] Valid entity embeddings: ${vectorData.length}/${entities.length}`
+      );
+      console.error(`[VectorSearchEntities] Threshold: ${options.threshold || 0.5}`);
+    }
+
+    const similarities = EmbeddingService.findMostSimilar(
+      queryEmbedding,
+      vectorData,
+      options.threshold || 0.5,
+      options.limit || 10
+    );
+
+    return similarities.map(s => s.data);
+  }
+
   async searchEntities(
     query: string,
-    options: { userId?: string; limit?: number } = {}
+    options: { userId?: string; limit?: number; threshold?: number } = {}
   ): Promise<MCPToolResult> {
     try {
       const userId = this.getUserId(options.userId);
-      const entities = await this.dbOps.searchEntities(userId, query, options.limit || 10);
+      const limit = options.limit || 10;
+
+      // Try vector search first
+      let vectorResults: Entity[] = [];
+      let vectorSearchUsed = false;
+      let vectorSearchError: string | null = null;
+
+      if (query.trim()) {
+        try {
+          const queryEmbedding = await this.embeddings.generateEmbedding(query, userId);
+
+          if (queryEmbedding && queryEmbedding.length > 0) {
+            vectorResults = await this.vectorSearchEntities(userId, queryEmbedding, {
+              threshold: options.threshold || 0.5,
+              limit,
+            });
+            vectorSearchUsed = true;
+
+            if (process.env.MCP_DEBUG) {
+              console.error(
+                `[SearchEntities] Vector search returned ${vectorResults.length} results`
+              );
+            }
+          }
+        } catch (error) {
+          vectorSearchError = String(error);
+          console.error('[SearchEntities] Vector search failed:', error);
+        }
+      }
+
+      // Fall back to text search if vector search failed or didn't return enough results
+      let textResults: Entity[] = [];
+      let textSearchUsed = false;
+
+      if (vectorResults.length < limit || vectorSearchError) {
+        try {
+          // Simple text search fallback (search in name, description, company, title)
+          const sql = `
+            SELECT * FROM entities
+            WHERE user_id = ?
+            AND (
+              LOWER(name) LIKE LOWER(?) OR
+              LOWER(description) LIKE LOWER(?) OR
+              LOWER(company) LIKE LOWER(?) OR
+              LOWER(title) LIKE LOWER(?)
+            )
+            ORDER BY importance DESC, created_at DESC
+            LIMIT ?
+          `;
+
+          const result = await this.db.execute(sql, [
+            userId,
+            `%${query}%`,
+            `%${query}%`,
+            `%${query}%`,
+            `%${query}%`,
+            limit - vectorResults.length,
+          ]);
+
+          textResults = result.rows.map((row: any) =>
+            SchemaCompatibility.mapEntityFromDatabase(row as any)
+          );
+          textSearchUsed = textResults.length > 0;
+
+          if (process.env.MCP_DEBUG) {
+            console.error(`[SearchEntities] Text search returned ${textResults.length} results`);
+          }
+        } catch (error) {
+          console.error('[SearchEntities] Text search also failed:', error);
+        }
+      }
+
+      // Combine and deduplicate results
+      const allResults = [...vectorResults];
+      const existingIds = new Set(vectorResults.map(e => e.id));
+
+      for (const result of textResults) {
+        if (!existingIds.has(result.id)) {
+          allResults.push(result);
+        }
+      }
+
+      // Build message
+      let message = `Found ${allResults.length} entities`;
+      if (vectorSearchUsed && textSearchUsed) {
+        message += ` (${vectorResults.length} via semantic search, ${textResults.length} via text search)`;
+      } else if (vectorSearchUsed) {
+        message += ` (semantic search)`;
+      } else if (textSearchUsed) {
+        message += ` (text search)`;
+      }
+
+      if (vectorSearchError) {
+        message += ` [Vector search error: ${vectorSearchError}]`;
+      }
 
       return {
         status: MCPToolResultStatus.SUCCESS,
-        message: `Found ${entities.length} entities`,
-        data: entities,
+        message,
+        data: allResults.slice(0, limit),
       };
     } catch (error) {
       return {

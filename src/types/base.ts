@@ -65,6 +65,7 @@ export interface Entity extends BaseEntity {
   relationships?: string;
   lastInteraction?: string;
   interactionCount: number;
+  embedding?: number[]; // Vector embedding for semantic search
   metadata?: Record<string, unknown>;
 }
 
